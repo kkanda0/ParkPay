@@ -72,6 +72,13 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
+.glass-strong {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899);
