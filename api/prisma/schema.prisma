@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ParkingLot {
+  id          String @id @default(cuid())
+  name        String
+  address     String
+  totalSpots  Int
+  latitude    Float
+  longitude   Float
+  ratePerMin  Float  // RLUSD per minute
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  spots       Spot[]
+  sessions    Session[]
+  
+  @@map("parking_lots")
+}
+
+model Spot {
+  id          String @id @default(cuid())
+  number      Int
+  isAvailable Boolean @default(true)
+  parkingLotId String
+  
+  parkingLot  ParkingLot @relation(fields: [parkingLotId], references: [id], onDelete: Cascade)
+  sessions    Session[]
+  
+  @@unique([parkingLotId, number])
+  @@map("spots")
+}
+
+model Session {
+  id            String @id @default(cuid())
+  walletAddress String
+  spotId        String
+  parkingLotId  String
+  startTime     DateTime
+  endTime       DateTime?
+  totalAmount   Float?  // RLUSD
+  status        String @default("ACTIVE") // ACTIVE, ENDED, CANCELLED
+  xrplTxHash    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  spot          Spot @relation(fields: [spotId], references: [id])
+  parkingLot    ParkingLot @relation(fields: [parkingLotId], references: [id])
+  
+  @@map("sessions")
+}
+
+model Wallet {
+  id            String @id @default(cuid())
+  address       String @unique
+  rlusdBalance  Float @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("wallets")
+}
+
+model Anomaly {
+  id          String @id @default(cuid())
+  type        String // RAPID_SESSION_START_END, SUSPICIOUS_PATTERN, UNUSUAL_RATE_CHANGE, HIGH_FREQUENCY_USAGE
+  description String
+  walletAddress String?
+  sessionId   String?
+  severity    String @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  resolved    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@map("anomalies")
+}

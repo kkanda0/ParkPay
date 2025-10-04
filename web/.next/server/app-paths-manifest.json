@@ -1,0 +1,8 @@
+{
+  "/wallet/page": "app/wallet/page.js",
+  "/page": "app/page.js",
+  "/map/page": "app/map/page.js",
+  "/chat/page": "app/chat/page.js",
+  "/provider/page": "app/provider/page.js",
+  "/spot/[id]/page": "app/spot/[id]/page.js"
+}

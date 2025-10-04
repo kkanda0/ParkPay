@@ -1,0 +1,18 @@
+{
+  "name": "parkpay",
+  "version": "1.0.0",
+  "description": "Parking micropayments dApp using XRPL + RLUSD",
+  "private": true,
+  "workspaces": [
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter api dev\" \"pnpm --filter web dev\"",
+    "build": "pnpm --filter api build && pnpm --filter web build",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
