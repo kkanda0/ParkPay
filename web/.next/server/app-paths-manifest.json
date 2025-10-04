@@ -1,5 +1,7 @@
 {
   "/page": "app/page.js",
+  "/map/page": "app/map/page.js",
   "/provider/page": "app/provider/page.js",
-  "/map/page": "app/map/page.js"
+  "/spot/[id]/page": "app/spot/[id]/page.js",
+  "/wallet/page": "app/wallet/page.js"
 }
