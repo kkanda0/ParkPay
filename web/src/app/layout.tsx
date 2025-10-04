@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import '../styles/globals.css'
 import { Providers } from './providers'
+import Navigation from '@/components/Navigation'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <Providers>
           {children}
+          <Navigation />
         </Providers>
       </body>
     </html>

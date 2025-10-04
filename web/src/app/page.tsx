@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion'
 import { Car, Zap, Brain, Shield } from 'lucide-react'
 import Link from 'next/link'
-import Navigation from '@/components/Navigation'
 
 export default function HomePage() {
   return (
@@ -141,9 +140,6 @@ export default function HomePage() {
           ))}
         </div>
       </motion.div>
-
-      {/* Navigation */}
-      <Navigation />
     </div>
   )
 }
