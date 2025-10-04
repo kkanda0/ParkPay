@@ -18,19 +18,29 @@ export function formatRLUSD(amount: number): string {
   return `${amount.toFixed(2)} RLUSD`
 }
 
-export function formatDuration(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes}m`
+export function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainingSeconds = seconds % 60
+  
+  if (hours > 0) {
+    if (minutes === 0 && remainingSeconds === 0) {
+      return `${hours}h`
+    }
+    if (remainingSeconds === 0) {
+      return `${hours}h ${minutes}m`
+    }
+    return `${hours}h ${minutes}m ${remainingSeconds}s`
   }
   
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-  
-  if (remainingMinutes === 0) {
-    return `${hours}h`
+  if (minutes > 0) {
+    if (remainingSeconds === 0) {
+      return `${minutes}m`
+    }
+    return `${minutes}m ${remainingSeconds}s`
   }
   
-  return `${hours}h ${remainingMinutes}m`
+  return `${remainingSeconds}s`
 }
 
 export function formatTimeAgo(date: Date): string {

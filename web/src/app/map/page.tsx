@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Car, Clock, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { apiService, ParkingLot, Spot } from '@/lib/api'
+import { apiService, ParkingLot, Spot, Session } from '@/lib/api'
 import { socketService } from '@/lib/socket'
 import { useApp } from '@/app/providers'
-import { cn, formatRLUSD } from '@/lib/utils'
+import { cn, formatRLUSD, formatDuration } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
 
 // Dynamically import the map component to avoid SSR issues
@@ -22,16 +22,39 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
 })
 
 export default function MapPage() {
-  const { walletAddress } = useApp()
+  const { walletAddress, currentSession } = useApp()
   const [parkingLot, setParkingLot] = useState<ParkingLot | null>(null)
   const [spots, setSpots] = useState<Spot[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null)
+  const [sessionDuration, setSessionDuration] = useState(0)
+  const [sessionAmount, setSessionAmount] = useState(0)
 
   useEffect(() => {
     loadParkingData()
     setupSocketListeners()
   }, [])
+
+  // Update session timer when there's an active session
+  useEffect(() => {
+    if (!currentSession || currentSession.status !== 'ACTIVE') {
+      setSessionDuration(0)
+      setSessionAmount(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      const startTime = new Date(currentSession.startTime)
+      const now = new Date()
+      const diffMs = now.getTime() - startTime.getTime()
+      const diffSeconds = Math.floor(diffMs / 1000)
+      
+      setSessionDuration(diffSeconds)
+      setSessionAmount((diffSeconds / 60) * 0.12) // Demo rate: 0.12 RLUSD per minute
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [currentSession])
 
   const loadParkingData = async () => {
     try {
@@ -136,6 +159,38 @@ export default function MapPage() {
               <div className="text-xs text-gray-400">Occupied</div>
             </div>
           </div>
+
+          {/* Active Session Timer - RIGHT underneath the available/occupied box */}
+          {currentSession && currentSession.status === 'ACTIVE' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3"
+            >
+              <Link href={`/spot/${currentSession.spotId}`}>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-cyan-400" />
+                      <span className="text-gray-400">Session:</span>
+                    </div>
+                    <span className="text-white font-mono">{formatDuration(sessionDuration)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-green-400" />
+                      <span className="text-gray-400">Spent:</span>
+                    </div>
+                    <span className="text-white font-mono">{formatRLUSD(sessionAmount)}</span>
+                  </div>
+                </motion.div>
+              </Link>
+            </motion.div>
+          )}
           
           <div className="mt-3 pt-3 border-t border-white/10">
             <div className="flex items-center justify-between text-sm">
@@ -146,34 +201,30 @@ export default function MapPage() {
         </div>
       </motion.div>
 
-      {/* Floating action button */}
-      <AnimatePresence>
-        {selectedSpot && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", bounce: 0.3 }}
-            className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-10"
+      {/* Start Session button - Top Center */}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.8 }}
+        className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10"
+      >
+        <Link href={selectedSpot && !currentSession ? `/spot/${selectedSpot.id}` : '#'}>
+          <motion.button
+            whileHover={{ scale: currentSession ? 1 : 1.05 }}
+            whileTap={{ scale: currentSession ? 1 : 0.95 }}
+            disabled={!selectedSpot || (currentSession && currentSession.status === 'ACTIVE')}
+            className="btn-primary px-8 py-4 rounded-2xl shadow-2xl neon-glow flex items-center gap-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Link href={`/spot/${selectedSpot.id}`}>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="btn-primary px-8 py-4 rounded-2xl shadow-2xl neon-glow flex items-center gap-3 text-lg font-semibold"
-              >
-                <Car className="w-6 h-6" />
-                Start Session
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-2 h-2 bg-white rounded-full"
-                />
-              </motion.button>
-            </Link>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Car className="w-6 h-6" />
+            {currentSession && currentSession.status === 'ACTIVE' ? 'Session Active' : 'Start Session'}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-2 h-2 bg-white rounded-full"
+            />
+          </motion.button>
+        </Link>
+      </motion.div>
 
       {/* Spot selection hint */}
       <motion.div
