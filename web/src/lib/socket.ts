@@ -10,7 +10,7 @@ class SocketService {
       return this.socket
     }
 
-    this.socket = io('http://localhost:3001', {
+    this.socket = io('http://localhost:4000', {
       transports: ['websocket'],
       timeout: 20000,
     })

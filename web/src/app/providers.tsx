@@ -22,7 +22,7 @@ export function useApp() {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [walletAddress, setWalletAddress] = useState<string>('0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6')
+  const [walletAddress, setWalletAddress] = useState<string>('rf81Uz61xCU5KqCMyEejNjvSxu62o9uwNQ')
   const [isConnected, setIsConnected] = useState(false)
   const [currentSession, setCurrentSession] = useState<any | null>(null)
 

@@ -21,7 +21,8 @@
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
     "socket.io-client": "^4.7.4",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^2.2.0",
+    "xrpl": "^2.14.3"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",

@@ -96,6 +96,9 @@ importers:
       tailwind-merge:
         specifier: ^2.2.0
         version: 2.6.0
+      xrpl:
+        specifier: ^2.14.3
+        version: 2.14.3
     devDependencies:
       '@types/canvas-confetti':
         specifier: ^1.9.0
