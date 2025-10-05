@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, TrendingUp, TrendingDown, Clock, MapPin, ExternalLink } from 'lucide-react'
-import { apiService, Wallet, Transaction } from '@/lib/api'
+import { Plus, TrendingUp, TrendingDown, Clock, MapPin, ExternalLink, DollarSign } from 'lucide-react'
+import { apiService, Wallet, Transaction, Session } from '@/lib/api'
 import { useApp } from '@/app/providers'
 import { cn, formatRLUSD, formatTimeAgo } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
+import { xrplService } from '@/lib/xrpl'
 
 export default function WalletPage() {
   const { walletAddress } = useApp()
@@ -15,51 +16,231 @@ export default function WalletPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showAddFunds, setShowAddFunds] = useState(false)
   const [isAddingFunds, setIsAddingFunds] = useState(false)
+  const [customAmount, setCustomAmount] = useState('')
+  const [sessionCount, setSessionCount] = useState(0)
+  const [totalSpent, setTotalSpent] = useState(0)
+  const [xrplAddress, setXRPLAddress] = useState('')
+  const [xrplSecret, setXRPLSecret] = useState('')
+  const [xrplConnected, setXRPLConnected] = useState(false)
+  const [xrplBalance, setXRPLBalance] = useState(0)
+  const [hasTrustline, setHasTrustline] = useState(false)
 
   useEffect(() => {
     loadWalletData()
+    loadSessionCount()
+    loadTotalSpent()
+    autoConnectXRPL()
   }, [walletAddress])
+
+  const autoConnectXRPL = async () => {
+    // Auto-connect with hardcoded credentials
+    const XRPL_ADDRESS = 'rf81Uz61xCU5KqCMyEejNjvSxu62o9uwNQ'
+    const XRPL_SECRET = 'sEdTCZaZYHZEQz3Ju5oUzG69Ujf5XTz'
+    
+    setXRPLAddress(XRPL_ADDRESS)
+    setXRPLSecret(XRPL_SECRET)
+    await connectToXRPL(XRPL_ADDRESS, XRPL_SECRET)
+  }
+
+  const connectToXRPL = async (address: string, secret: string) => {
+    try {
+      xrplService.importWallet(address, secret)
+      setXRPLConnected(true)
+      
+      // Check if trustline exists
+      let trustlineExists = await xrplService.checkRLUSDTrustline(address)
+      
+      // If no trustline, automatically set it up
+      if (!trustlineExists) {
+        console.log('🔧 No RLUSD trustline found. Setting up automatically...')
+        const success = await xrplService.setupRLUSDTrustline()
+        if (success) {
+          console.log('✅ RLUSD trustline established!')
+          trustlineExists = true
+          setHasTrustline(true)
+        } else {
+          console.error('❌ Failed to setup trustline')
+          return
+        }
+      } else {
+        console.log('✅ RLUSD trustline already exists')
+        setHasTrustline(true)
+      }
+      
+      // Get RLUSD balance from ledger
+      const balance = await xrplService.getRLUSDBalance(address)
+      setXRPLBalance(balance)
+      console.log(`💰 XRPL RLUSD Balance: ${balance}`)
+      
+      // Sync ledger balance to wallet display
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('walletBalance', balance.toString())
+        // Store XRPL credentials for later use (e.g., when ending parking sessions)
+        localStorage.setItem('xrpl-address', address)
+        localStorage.setItem('xrpl-secret', secret)
+        console.log('💾 Saved XRPL credentials to localStorage')
+        // Will update wallet state in loadWalletData
+      }
+      
+      // Reload wallet data to reflect the synced balance
+      await loadWalletData()
+      
+    } catch (error) {
+      console.error('Error connecting to XRPL:', error)
+    }
+  }
+
+
+  // Refresh session count and transactions when component becomes visible or page is focused
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadSessionCount()
+        loadTotalSpent()
+        loadWalletData() // Also refresh transactions
+      }
+    }
+
+    const handleFocus = () => {
+      loadSessionCount()
+      loadTotalSpent()
+      loadWalletData() // Also refresh transactions
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
+
+  const loadSessionCount = () => {
+    if (typeof window !== 'undefined') {
+      const savedSessions = localStorage.getItem('parkpay-sessions')
+      if (savedSessions) {
+        try {
+          const sessions: Session[] = JSON.parse(savedSessions)
+          setSessionCount(sessions.length)
+        } catch (e) {
+          console.error('Error parsing sessions:', e)
+          setSessionCount(0)
+        }
+      } else {
+        setSessionCount(0)
+      }
+    }
+  }
+
+  const loadTotalSpent = () => {
+    if (typeof window !== 'undefined') {
+      const savedSessions = localStorage.getItem('parkpay-sessions')
+      if (savedSessions) {
+        try {
+          const sessions: Session[] = JSON.parse(savedSessions)
+          // Sum up all ended sessions
+          const total = sessions
+            .filter(session => session.status === 'ENDED')
+            .reduce((sum, session) => sum + (session.totalAmount || 0), 0)
+          setTotalSpent(total)
+        } catch (e) {
+          console.error('Error parsing sessions for total spent:', e)
+          setTotalSpent(0)
+        }
+      } else {
+        setTotalSpent(0)
+      }
+    }
+  }
 
   const loadWalletData = async () => {
     try {
       setIsLoading(true)
       
-      // For demo purposes, use mock data
-      const mockWallet: Wallet = {
-        address: walletAddress,
-        rlusdBalance: 25.50,
-        recentTransactions: [
+      // Get balance from XRPL if connected, otherwise use localStorage
+      let balance = 100.00 // Start with 100 RLUSD
+      
+      if (xrplConnected && hasTrustline) {
+        // Get balance from XRPL
+        try {
+          balance = await xrplService.getRLUSDBalance(xrplAddress)
+          setXRPLBalance(balance)
+          // Update localStorage to match
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('walletBalance', balance.toString())
+          }
+        } catch (error) {
+          console.error('Error getting XRPL balance:', error)
+        }
+      } else if (typeof window !== 'undefined') {
+        // Fallback to localStorage
+        const savedBalance = localStorage.getItem('walletBalance')
+        if (savedBalance) {
+          balance = parseFloat(savedBalance)
+        } else {
+          localStorage.setItem('walletBalance', '100.00')
+        }
+      }
+      
+      // Get real sessions from localStorage and convert to transactions
+      let recentTransactions: Transaction[] = []
+      if (typeof window !== 'undefined') {
+        const savedSessions = localStorage.getItem('parkpay-sessions')
+        if (savedSessions) {
+          try {
+            const sessions: Session[] = JSON.parse(savedSessions)
+            // Convert sessions to transactions (only ended sessions)
+            recentTransactions = sessions
+              .filter(session => session.status === 'ENDED')
+              .slice(0, 5) // Get first 5 sessions
+              .map(session => ({
+                id: session.id,
+                type: 'payment' as const,
+                amount: session.totalAmount || 0,
+                parkingLot: session.parkingGarage?.name || 'iPark-44 Elizabeth Street Parking Garage',
+                spotNumber: parseInt(session.spotId.split('-')[1]) || 1,
+                timestamp: session.endTime || session.startTime,
+                xrplTxHash: session.xrplTxHash
+              }))
+          } catch (e) {
+            console.error('Error parsing sessions for transactions:', e)
+          }
+        }
+      }
+      
+      // If no real sessions, use some default transactions
+      if (recentTransactions.length === 0) {
+        recentTransactions = [
           {
-            id: 'tx-1',
+            id: 'tx-default-1',
             type: 'payment',
             amount: 2.40,
-            parkingLot: 'Main Street Parking',
+            parkingLot: 'iPark-44 Elizabeth Street Parking Garage',
             spotNumber: 5,
             timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
             xrplTxHash: 'tx_1703123456_abc123def'
           },
           {
-            id: 'tx-2',
+            id: 'tx-default-2',
             type: 'payment',
             amount: 1.80,
-            parkingLot: 'Main Street Parking',
+            parkingLot: 'iPark-44 Elizabeth Street Parking Garage',
             spotNumber: 12,
             timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
             xrplTxHash: 'tx_1703123457_def456ghi'
-          },
-          {
-            id: 'tx-3',
-            type: 'active',
-            amount: 0.36,
-            parkingLot: 'Main Street Parking',
-            spotNumber: 8,
-            timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString()
           }
         ]
       }
       
-      setWallet(mockWallet)
-      setTransactions(mockWallet.recentTransactions)
+      const wallet: Wallet = {
+        address: walletAddress,
+        rlusdBalance: balance,
+        recentTransactions: recentTransactions
+      }
+      
+      setWallet(wallet)
+      setTransactions(recentTransactions)
     } catch (error) {
       console.error('Error loading wallet data:', error)
     } finally {
@@ -71,21 +252,51 @@ export default function WalletPage() {
     setIsAddingFunds(true)
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      console.log(`💰 Requesting ${amount} RLUSD from Genesis Bank...`)
       
-      if (wallet) {
-        setWallet({
-          ...wallet,
-          rlusdBalance: wallet.rlusdBalance + amount
+      // Call issuer API to issue RLUSD
+      const response = await fetch('http://localhost:4000/api/issuer/fund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userAddress: walletAddress,
+          amount: amount
         })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to issue RLUSD')
       }
       
+      const result = await response.json()
+      console.log('✅ RLUSD issued successfully:', result)
+      console.log('📝 Transaction hash:', result.txHash)
+      
+      // Wait a moment for the blockchain to process
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Reload wallet data to sync with XRPL ledger
+      await loadWalletData()
+      
       setShowAddFunds(false)
+      setCustomAmount('')
+      
+      alert(`✅ Successfully added ${amount} RLUSD to your wallet!\nTransaction: ${result.txHash}`)
     } catch (error) {
-      console.error('Error adding funds:', error)
+      console.error('❌ Error adding funds:', error)
+      alert(`Failed to add funds: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsAddingFunds(false)
+    }
+  }
+
+  const handleCustomAmount = () => {
+    const amount = parseFloat(customAmount)
+    if (amount > 0) {
+      handleAddFunds(amount)
     }
   }
 
@@ -175,13 +386,13 @@ export default function WalletPage() {
       >
         <div className="glass-card rounded-2xl p-4 text-center">
           <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">12</div>
+          <div className="text-2xl font-bold text-white">{sessionCount}</div>
           <div className="text-sm text-gray-400">Sessions</div>
         </div>
         
         <div className="glass-card rounded-2xl p-4 text-center">
           <TrendingDown className="w-8 h-8 text-red-400 mx-auto mb-2" />
-          <div className="text-2xl font-bold text-white">$8.40</div>
+          <div className="text-2xl font-bold text-white">{formatRLUSD(totalSpent)}</div>
           <div className="text-sm text-gray-400">Total Spent</div>
         </div>
       </motion.div>
@@ -193,7 +404,7 @@ export default function WalletPage() {
         transition={{ delay: 0.6 }}
         className="glass-card rounded-2xl p-6"
       >
-        <h3 className="text-lg font-semibold text-white mb-4">Recent Transactions</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">Last 5 Transactions</h3>
         
         <div className="space-y-4">
           <AnimatePresence>
@@ -272,19 +483,49 @@ export default function WalletPage() {
             >
               <h3 className="text-2xl font-bold text-white mb-6 text-center">Add Funds</h3>
               
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {[10, 25, 50, 100].map((amount) => (
-                  <motion.button
-                    key={amount}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleAddFunds(amount)}
-                    disabled={isAddingFunds}
-                    className="btn-secondary py-3 rounded-xl font-semibold disabled:opacity-50"
-                  >
-                    ${amount}
-                  </motion.button>
-                ))}
+              {/* Custom Amount Input */}
+              <div className="mb-6">
+                <label className="block text-sm text-gray-400 mb-2">Custom Amount</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="number"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="0.00"
+                    min="0.01"
+                    step="0.01"
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                  />
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCustomAmount}
+                  disabled={isAddingFunds || !customAmount || parseFloat(customAmount) <= 0}
+                  className="w-full mt-3 btn-primary py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add {customAmount ? `$${customAmount}` : '$0.00'}
+                </motion.button>
+              </div>
+              
+              {/* Quick Amount Buttons */}
+              <div className="mb-6">
+                <div className="text-sm text-gray-400 mb-3">Quick Add</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[10, 25, 50, 100].map((amount) => (
+                    <motion.button
+                      key={amount}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleAddFunds(amount)}
+                      disabled={isAddingFunds}
+                      className="btn-secondary py-3 rounded-xl font-semibold disabled:opacity-50"
+                    >
+                      ${amount}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
               
               <div className="text-center text-sm text-gray-400">
@@ -305,6 +546,7 @@ export default function WalletPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
 
       {/* Navigation */}
       <Navigation />

@@ -12,6 +12,7 @@ import aiRoutes from './routes/ai';
 import walletRoutes from './routes/wallet';
 import providerRoutes from './routes/provider';
 import parkingRoutes from './routes/parking';
+import issuerRoutes from './routes/issuer';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +43,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/provider', providerRoutes);
 app.use('/api/parking', parkingRoutes);
+app.use('/api/issuer', issuerRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
