@@ -97,19 +97,46 @@ class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
     
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
+    console.log('🌐 API Request:', {
+      url,
+      method: options.method || 'GET',
+      headers: options.headers,
+      body: options.body
     })
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      })
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`)
+      console.log('📡 API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`❌ API Error ${response.status}:`, errorText)
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log('✅ API Success:', data)
+      return data
+    } catch (error) {
+      console.error('🚨 Network error:', error)
+      console.error('🚨 Error type:', typeof error)
+      console.error('🚨 Error constructor:', error?.constructor?.name)
+      console.error('🚨 Error message:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('🚨 Error stack:', error instanceof Error ? error.stack : 'No stack')
+      throw error
     }
-
-    return response.json()
   }
 
   // Pricing endpoints
@@ -169,10 +196,15 @@ class ApiService {
 
   // AI endpoints
   async chat(message: string, walletAddress?: string, context?: any): Promise<ChatMessage> {
-    return this.request('/ai/chat', {
+    console.log('🤖 API Service Chat called with:', { message, walletAddress, context })
+    console.log('🌐 Making request to:', `${API_BASE_URL}/ai/chat`)
+    
+    const result = await this.request('/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ message, walletAddress, context }),
     })
+    console.log('🤖 API Service Chat result:', result)
+    return result as ChatMessage
   }
 
   async analyzeAnomalies(parkingLotId: string) {
@@ -232,7 +264,10 @@ class ApiService {
 
   // Health check
   async healthCheck() {
-    return this.request('/health')
+    console.log('🏥 API Service Health Check called')
+    const result = await this.request('/health')
+    console.log('🏥 API Service Health Check result:', result)
+    return result
   }
 }
 

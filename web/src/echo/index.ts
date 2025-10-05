@@ -93,7 +93,7 @@ function generateContextualExplanation(timeOfDay: string, dayOfWeek: string, loc
   }
   
   // Comprehensive default explanation
-  return `The current rate reflects typical demand for this area and time. ${getTimeDescription(timeOfDay)} patterns create predictable pricing cycles, while ${getLocationDescription(locationName)} location factors influence the base rate. Market competition and local events can cause fluctuations throughout the day.`;
+  return `The current rate reflects typical demand for this area and time. ${getTimeDescription(parseInt(timeOfDay))} patterns create predictable pricing cycles, while ${getLocationDescription(locationName)} location factors influence the base rate. Market competition and local events can cause fluctuations throughout the day.`;
 }
 
 // Simulate AI web crawling for real parking prices
@@ -128,7 +128,7 @@ async function simulateWebCrawling(lat: string, lon: string, locationName: strin
     finalPrice: finalPrice,
     streetAddress: streetAddress,
     nearbySpots: nearbySpots,
-    explanation: generateContextualExplanation(timeOfDay, dayOfWeek, locationName, nearbySpots),
+    explanation: generateContextualExplanation(timeOfDay.toString(), getDayDescription(dayOfWeek), locationName, nearbySpots),
     marketFactors: [
       `Heavy traffic downtown`,
       `${getTimeDescription(timeOfDay)} demand patterns`,

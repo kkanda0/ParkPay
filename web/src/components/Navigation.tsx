@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MapPin, Wallet, MessageCircle, LogOut, Clock } from 'lucide-react'
+import { MapPin, Wallet, MessageCircle, LogOut, Clock, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,7 @@ const navigation = [
   { name: 'Sessions', href: '/sessions', icon: Clock },
   { name: 'Map', href: '/map', icon: MapPin },
   { name: 'Wallet', href: '/wallet', icon: Wallet },
-  { name: 'Chat', href: '/chat', icon: MessageCircle },
+  { name: 'Recommendations', href: '/recommendations', icon: Sparkles },
 ]
 
 export default function Navigation() {

@@ -22,6 +22,7 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -41,7 +42,10 @@ export default function ChatPage() {
     }
     
     setMessages([welcomeMessage])
-  }, [])
+    
+    // Test API connectivity on component mount
+    testConnectivity()
+  }, [walletAddress])
 
   useEffect(() => {
     scrollToBottom()
@@ -52,6 +56,7 @@ export default function ChatPage() {
   }
 
   const handleSendMessage = async (content: string) => {
+    console.log('🎯 handleSendMessage called with:', content)
     if (!content.trim() || isLoading) return
 
     const userMessage: Message = {
@@ -67,12 +72,18 @@ export default function ChatPage() {
     setIsTyping(true)
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      console.log('🚀 Sending message:', content.trim(), 'to wallet:', walletAddress)
+      console.log('🌐 API Base URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api')
       
-      // Mock AI response based on content
-      const aiResponse = generateMockResponse(content)
+      // Test basic connectivity first
+      console.log('🔍 Testing API connectivity...')
+      const testResponse = await fetch('http://localhost:4000/api/health')
+      console.log('✅ Health check:', testResponse.status, testResponse.statusText)
       
+      console.log('🔍 Calling apiService.chat...')
+      const aiResponse = await apiService.chat(content.trim(), walletAddress)
+      console.log('✅ AI Response received:', aiResponse)
+
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
         type: 'ai',
@@ -83,60 +94,76 @@ export default function ChatPage() {
 
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('🚨 Error sending message:', error)
+      
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        type: 'ai',
+        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
       setIsTyping(false)
     }
   }
 
-  const generateMockResponse = (input: string): { message: string; suggestions: string[] } => {
-    const lowerInput = input.toLowerCase()
-    
-    if (lowerInput.includes('balance') || lowerInput.includes('money')) {
-      return {
-        message: "Your current RLUSD balance is $25.50. You can add funds anytime through your wallet. All transactions are processed instantly via XRPL.",
-        suggestions: ["Add funds", "View transaction history", "Check session costs"]
-      }
-    }
-    
-    if (lowerInput.includes('spot') || lowerInput.includes('parking') || lowerInput.includes('available')) {
-      return {
-        message: "I can help you find available parking spots! The map shows real-time availability with glowing markers for open spots. Currently, there are 17 spots available at Main Street Parking.",
-        suggestions: ["Show me the map", "Navigate to parking lot", "Set up notifications"]
-      }
-    }
-    
-    if (lowerInput.includes('session') || lowerInput.includes('start') || lowerInput.includes('end')) {
-      return {
-        message: "To start a session, simply tap on an available spot on the map and press 'Start Session'. Your session will be tracked in real-time with live billing. To end, press 'End Session' and payment will be processed instantly.",
-        suggestions: ["Start a session", "View active sessions", "Session history"]
-      }
-    }
-    
-    if (lowerInput.includes('charge') || lowerInput.includes('cost') || lowerInput.includes('price')) {
-      return {
-        message: "ParkPay charges 0.12 RLUSD per minute. You're only charged for the time you actually use the spot. Sessions are billed in real-time, so you can see your current cost as the timer runs.",
-        suggestions: ["View pricing details", "Check my session costs", "Calculate parking time"]
-      }
-    }
-    
-    if (lowerInput.includes('refund') || lowerInput.includes('money back')) {
-      return {
-        message: "Refunds are processed automatically when sessions end early. Any unused time is credited back to your RLUSD wallet instantly via XRPL settlement. You can view all refunds in your transaction history.",
-        suggestions: ["View refunds", "Check transaction history", "Contact support"]
-      }
-    }
-    
-    return {
-      message: "I'm here to help with your parking needs! I can assist with session management, billing questions, spot availability, and XRPL transactions. What specific question do you have?",
-      suggestions: ["How does ParkPay work?", "Check my balance", "Find parking spots", "View my sessions"]
-    }
-  }
-
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue(suggestion)
     inputRef.current?.focus()
+  }
+
+  const testConnectivity = async () => {
+    console.log('🔍 Testing API connectivity...')
+    console.log('🌐 API Base URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api')
+    console.log('👛 Wallet Address:', walletAddress)
+    
+    setDebugInfo('Testing API connectivity...')
+    
+    try {
+      // Test basic connectivity
+      console.log('🔍 Testing health endpoint...')
+      setDebugInfo('Testing health endpoint...')
+      const healthResponse = await apiService.healthCheck()
+      console.log('✅ Health check passed:', healthResponse)
+      setDebugInfo('Health check passed')
+      
+      // Test chat endpoint specifically
+      console.log('🔍 Testing chat endpoint...')
+      setDebugInfo('Testing chat endpoint...')
+      const chatResponse = await apiService.chat('test connectivity', walletAddress)
+      console.log('✅ Chat endpoint test passed:', chatResponse)
+      setDebugInfo('Chat endpoint test passed')
+      
+      // Add the test response to the chat
+      const testMessage: Message = {
+        id: `test-${Date.now()}`,
+        type: 'ai',
+        content: `✅ API Test Successful! Response: ${chatResponse.message}`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, testMessage])
+      
+    } catch (error) {
+      console.error('❌ API connectivity failed:', error)
+      console.error('❌ Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack'
+      })
+      
+      setDebugInfo(`API Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
+      // Add connectivity error message to chat
+      const connectivityMessage: Message = {
+        id: `connectivity-error-${Date.now()}`,
+        type: 'ai',
+        content: `⚠️ API connectivity issue detected: ${error instanceof Error ? error.message : 'Unknown error'}. Please check console for details.`,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, connectivityMessage])
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -165,6 +192,44 @@ export default function ChatPage() {
           <div className="ml-auto">
             <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
           </div>
+        </div>
+        
+        {/* Debug Info */}
+        {debugInfo && (
+          <div className="mt-2 p-2 bg-blue-900/20 rounded-lg">
+            <p className="text-xs text-blue-300">Debug: {debugInfo}</p>
+          </div>
+        )}
+        
+        {/* Manual Test Button */}
+        <div className="mt-2">
+          <button 
+            onClick={testConnectivity}
+            className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+          >
+            Test API Connection
+          </button>
+          <button 
+            onClick={async () => {
+              console.log('🧪 Testing direct API call...')
+              try {
+                const response = await fetch('http://localhost:4000/api/ai/chat', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ message: 'Direct test', walletAddress: 'test' })
+                })
+                const data = await response.json()
+                console.log('✅ Direct API test result:', data)
+                alert(`API Working! Response: ${data.message.substring(0, 50)}...`)
+              } catch (error) {
+                console.error('❌ Direct API test failed:', error)
+                alert(`API Failed: ${error}`)
+              }
+            }}
+            className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 ml-2"
+          >
+            Direct API Test
+          </button>
         </div>
       </motion.div>
 

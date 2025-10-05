@@ -5,6 +5,7 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_TOMTOM_API_KEY: 'MWH3UEN2Q9NTG4Amr7bjlUF1Luhjti6l',
+    NEXT_PUBLIC_API_URL: 'http://localhost:4000/api',
   },
 }
 

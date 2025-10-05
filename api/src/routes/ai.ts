@@ -88,7 +88,7 @@ router.post('/chat', async (req, res) => {
     });
     
     res.json({
-      response: response.message,
+      message: response.message,
       suggestions: response.suggestions,
       timestamp: new Date().toISOString()
     });
@@ -211,63 +211,201 @@ router.get('/insights/:parkingLotId', async (req, res) => {
   }
 });
 
-// Echo by Merit API Integration using Merit's SDK
+// Echo/Gemini/OpenAI integration with graceful sequential fallback
 async function callEchoMeritAPI(message: string, context: any) {
-  const ECHO_MERIT_API_KEY = process.env.ECHO_MERIT_API_KEY;
-  
-  if (!ECHO_MERIT_API_KEY) {
-    console.warn('Echo by Merit API key not configured, using fallback response');
-    return simulateEchoAIResponse(message, context);
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  const ECHO_API_KEY = process.env.ECHO_AI_API_KEY;
+
+  console.log('🔐 Keys → Gemini:', !!GEMINI_API_KEY, 'OpenAI:', !!OPENAI_API_KEY, 'Echo:', !!ECHO_API_KEY);
+
+  // 1) Try Gemini first if configured
+  if (GEMINI_API_KEY) {
+    try {
+      console.log('🤖 Trying Gemini first...');
+      return await callGeminiAPI(message, context, GEMINI_API_KEY);
+    } catch (err) {
+      console.warn('⚠️ Gemini failed, continuing to next provider:', (err as Error)?.message);
+    }
   }
-  
+
+  // 2) Try OpenAI second if configured
+  if (OPENAI_API_KEY) {
+    try {
+      console.log('🤖 Trying OpenAI next...');
+      return await callOpenAIAPI(message, context, OPENAI_API_KEY);
+    } catch (err) {
+      console.warn('⚠️ OpenAI failed, continuing to next provider:', (err as Error)?.message);
+    }
+  }
+
+  // 3) Try Echo last if configured
+  if (ECHO_API_KEY) {
+    try {
+      console.log('🤖 Trying Echo last...');
+      const contextData = {
+        parking: {
+          session: context.sessionContext,
+          parkingLot: context.parkingLotContext,
+          walletAddress: context.walletAddress
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetch('https://api.echo.merit.com/v1/chat', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ECHO_API_KEY}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'ParkPay/1.0'
+        },
+        body: JSON.stringify({
+          message,
+          context: contextData,
+          model: 'gpt-4',
+          temperature: 0.7,
+          max_tokens: 500
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Echo API error:', response.status, errorText);
+        throw new Error(`Echo API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Echo API response:', data);
+
+      return {
+        message: data.response || data.message || 'I received your message and I\'m processing it.',
+        suggestions: data.suggestions || [
+          "How does ParkPay work?",
+          "Check my balance",
+          "Find parking spots",
+          "View my sessions"
+        ]
+      };
+    } catch (err) {
+      console.warn('⚠️ Echo failed, no more providers left:', (err as Error)?.message);
+    }
+  }
+
+  // 4) All providers failed → simulated answer
+  console.log('🔄 All providers failed or not configured. Using simulated response.');
+  return simulateEchoAIResponse(message, context);
+}
+
+// Gemini API Integration
+async function callGeminiAPI(message: string, context: any, apiKey: string) {
   try {
-    // Prepare context for Echo by Merit
-    const contextData = {
-      parking: {
-        session: context.sessionContext,
-        parkingLot: context.parkingLotContext,
-        walletAddress: context.walletAddress
-      },
-      timestamp: new Date().toISOString()
-    };
-    
-    // Call Echo by Merit API using their standard endpoint
-    const response = await fetch('https://api.echo.merit.systems/v1/chat', {
+    // Primary: latest flash model on v1beta
+    let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+    let response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${ECHO_MERIT_API_KEY}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'ParkPay/1.0'
       },
       body: JSON.stringify({
-        message,
-        context: contextData,
-        model: 'gpt-4',
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `You are Echo AI, a smart parking assistant for ParkPay. Help users with parking, payments via XRPL blockchain, and RLUSD tokens. Be helpful and conversational.
+
+User message: ${message}
+Context: ${JSON.stringify(context)}
+
+Respond naturally and provide relevant suggestions.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        }
+      })
+    });
+
+    // Fallback: try v1 with flash-latest, then legacy gemini-pro
+    if (!response.ok) {
+      const errText1 = await response.text().catch(() => '');
+      if (response.status === 404) {
+        url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: `You are Echo AI...\n\nUser message: ${message}\nContext: ${JSON.stringify(context)}` }]}],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
+          })
+        });
+      }
+
+      if (!response.ok) {
+        const errText2 = await response.text().catch(() => errText1 || '');
+        throw new Error(`Gemini API error: ${response.status} ${errText2}`);
+      }
+    }
+
+    const data = await response.json();
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'I received your message and I\'m processing it.';
+
+    return {
+      message: aiResponse,
+      suggestions: [
+        "Check my balance",
+        "Find parking spots", 
+        "View active sessions",
+        "How does ParkPay work?"
+      ]
+    };
+  } catch (error) {
+    console.error('Gemini API error:', error);
+    throw error;
+  }
+}
+
+// OpenAI API Integration
+async function callOpenAIAPI(message: string, context: any, apiKey: string) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{
+          role: 'system',
+          content: 'You are Echo AI, a smart parking assistant for ParkPay. Help users with parking, payments via XRPL blockchain, and RLUSD tokens. Be helpful and conversational.'
+        }, {
+          role: 'user',
+          content: message
+        }],
         temperature: 0.7,
         max_tokens: 500
       })
     });
-    
+
     if (!response.ok) {
-      throw new Error(`Echo by Merit API error: ${response.status} ${response.statusText}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
+    const aiResponse = data.choices?.[0]?.message?.content || 'I received your message and I\'m processing it.';
+
     return {
-      message: data.response || data.message || 'I received your message and I\'m processing it.',
-      suggestions: data.suggestions || [
-        "How does ParkPay work?",
-        "Check my balance", 
+      message: aiResponse,
+      suggestions: [
+        "Check my balance",
         "Find parking spots",
-        "View my sessions"
+        "View active sessions", 
+        "How does ParkPay work?"
       ]
     };
-    
   } catch (error) {
-    console.error('Echo by Merit API call failed:', error);
-    // Fallback to simulated response
-    return simulateEchoAIResponse(message, context);
+    console.error('OpenAI API error:', error);
+    throw error;
   }
 }
 
@@ -278,30 +416,109 @@ async function simulateEchoAIResponse(message: string, context: any) {
   
   const lowerMessage = message.toLowerCase();
   
-  if (lowerMessage.includes('charge') || lowerMessage.includes('cost') || lowerMessage.includes('price')) {
+  // Balance and wallet scenarios
+  if (lowerMessage.includes('balance') || lowerMessage.includes('check my balance')) {
     return {
-      message: "I can help you understand your parking charges. Each session is billed per minute at the current rate. You can view your session details and transaction history in your wallet.",
-      suggestions: ["View my session history", "How are charges calculated?", "Check my RLUSD balance"]
+      message: "Your RLUSD wallet balance is 45.67 RLUSD. You have 3 active sessions and 12 completed transactions this month. Would you like to see your recent transaction history?",
+      suggestions: ["View transaction history", "Add funds to wallet", "Check active sessions", "Export statements"]
     };
   }
   
-  if (lowerMessage.includes('refund') || lowerMessage.includes('money back')) {
+  // Charging scenarios
+  if (lowerMessage.includes('charge') || lowerMessage.includes('cost') || lowerMessage.includes('price') || lowerMessage.includes('billing')) {
     return {
-      message: "Refunds are processed automatically when sessions end early. The unused time is credited back to your RLUSD wallet instantly via XRPL settlement.",
-      suggestions: ["Check my refund status", "View transaction history", "Contact support"]
+      message: "ParkPay charges $0.15 per minute for parking. Your current session at Downtown Plaza has been running for 23 minutes, totaling $3.45. Charges are settled instantly via XRPL blockchain.",
+      suggestions: ["End current session", "View pricing details", "Check session history", "Set spending alerts"]
     };
   }
   
-  if (lowerMessage.includes('spot') || lowerMessage.includes('available')) {
+  // Refund scenarios
+  if (lowerMessage.includes('refund') || lowerMessage.includes('money back') || lowerMessage.includes('cancel')) {
     return {
-      message: "I can help you find available parking spots. The map shows real-time availability with glowing markers for open spots.",
-      suggestions: ["Show me available spots", "Navigate to parking lot", "Set up notifications"]
+      message: "Refunds are processed automatically when sessions end early. For example, if you paid for 2 hours but only used 45 minutes, the unused $1.13 is instantly credited back to your RLUSD wallet via XRPL settlement.",
+      suggestions: ["Check refund status", "View transaction history", "End session early", "Contact support"]
     };
   }
+  
+  // Spot availability scenarios
+  if (lowerMessage.includes('spot') || lowerMessage.includes('available') || lowerMessage.includes('find parking') || lowerMessage.includes('where can i park')) {
+    return {
+      message: "I found 8 available spots near you! Downtown Plaza has 3 spots ($0.15/min), City Center has 2 spots ($0.12/min), and Mall District has 3 spots ($0.18/min). The map shows real-time availability with glowing markers.",
+      suggestions: ["Show me available spots", "Navigate to closest lot", "Set availability alerts", "Reserve a spot"]
+    };
+  }
+  
+  // Session management scenarios
+  if (lowerMessage.includes('session') || lowerMessage.includes('active') || lowerMessage.includes('current')) {
+    return {
+      message: "You have 1 active session at Downtown Plaza (Spot #12) that started 23 minutes ago. Current cost: $3.45. Your session will auto-renew every hour unless you end it manually.",
+      suggestions: ["End current session", "Extend session", "View session details", "Get receipt"]
+    };
+  }
+  
+  // Help and how it works scenarios
+  if (lowerMessage.includes('how does') || lowerMessage.includes('how it works') || lowerMessage.includes('explain')) {
+    return {
+      message: "ParkPay uses XRPL blockchain for instant micropayments! Here's how it works: 1) Find a spot on the map, 2) Tap to start session, 3) Park and pay per minute, 4) End session when done. All payments are settled instantly via RLUSD tokens.",
+      suggestions: ["Start my first session", "View tutorial", "Check wallet balance", "Find nearby spots"]
+    };
+  }
+  
+  // Emergency scenarios
+  if (lowerMessage.includes('help') || lowerMessage.includes('emergency') || lowerMessage.includes('stuck') || lowerMessage.includes('problem')) {
+    return {
+      message: "I'm here to help! If you're having trouble ending a session, experiencing payment issues, or need immediate assistance, I can connect you with our support team. What specific issue are you facing?",
+      suggestions: ["End stuck session", "Report payment issue", "Contact support", "Emergency assistance"]
+    };
+  }
+  
+  // Payment scenarios
+  if (lowerMessage.includes('payment') || lowerMessage.includes('pay') || lowerMessage.includes('transaction')) {
+    return {
+      message: "All ParkPay transactions are processed instantly via XRPL blockchain using RLUSD tokens. No credit cards needed! Your wallet automatically deducts payments and credits refunds. Transaction fees are only $0.0001 per transaction.",
+      suggestions: ["View recent transactions", "Add funds to wallet", "Check payment methods", "Export receipts"]
+    };
+  }
+  
+  // Enhanced conversational responses based on message content
+  
+  // Greeting responses
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+    return {
+      message: "Hello! I'm Echo AI, your smart parking assistant. I'm doing great, thanks for asking! I'm here to help you with all your parking needs using XRPL blockchain technology. How can I assist you today?",
+      suggestions: ["Check my balance", "Find parking spots", "How does ParkPay work?", "Start a session"]
+    };
+  }
+  
+  // How are you responses
+  if (lowerMessage.includes('how are you') || lowerMessage.includes('how do you do')) {
+    return {
+      message: "I'm doing fantastic! I'm always ready to help with parking, payments, and XRPL transactions. I love assisting users with ParkPay's blockchain-powered parking system. What would you like to know about?",
+      suggestions: ["Tell me about ParkPay", "Check my balance", "Find parking spots", "View my sessions"]
+    };
+  }
+  
+  // General questions
+  if (lowerMessage.includes('what') || lowerMessage.includes('tell me') || lowerMessage.includes('explain')) {
+    return {
+      message: "I'd be happy to explain! ParkPay is a revolutionary parking system that uses XRPL blockchain for instant micropayments. You can find spots, pay with RLUSD tokens, and get instant refunds. What specifically would you like to know more about?",
+      suggestions: ["How does ParkPay work?", "What is XRPL?", "How do payments work?", "Find parking spots"]
+    };
+  }
+  
+  // Default conversational response
+  const responses = [
+    "That's interesting! I'm here to help with all your parking needs. ParkPay makes parking simple with XRPL blockchain payments and RLUSD tokens.",
+    "Great question! I can assist with finding spots, managing sessions, checking balances, and handling payments. What would you like to explore?",
+    "I'd be happy to help! ParkPay uses smart contracts on XRPL for seamless parking payments. What specifically interests you?",
+    "Thanks for reaching out! I'm your AI assistant for ParkPay's blockchain-powered parking system. How can I help you today?"
+  ];
+  
+  const randomResponse = responses[Math.floor(Math.random() * responses.length)];
   
   return {
-    message: "I'm here to help with your parking needs! I can assist with session management, billing questions, spot availability, and XRPL transactions. What would you like to know?",
-    suggestions: ["How does ParkPay work?", "Check my balance", "Find parking spots", "View my sessions"]
+    message: randomResponse,
+    suggestions: ["Check my balance", "Find parking spots", "View active sessions", "How does ParkPay work?"]
   };
 }
 

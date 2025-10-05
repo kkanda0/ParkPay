@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Debug Test</title>
+</head>
+<body>
+    <h1>API Connectivity Test</h1>
+    <div id="results"></div>
+    <button onclick="testAPI()">Test API</button>
+    
+    <script>
+        async function testAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing API connectivity...</p>';
+            
+            try {
+                // Test health endpoint
+                console.log('Testing health endpoint...');
+                const healthResponse = await fetch('http://localhost:4000/api/health');
+                const healthData = await healthResponse.json();
+                console.log('Health response:', healthData);
+                results.innerHTML += `<p>✅ Health check: ${JSON.stringify(healthData)}</p>`;
+                
+                // Test chat endpoint
+                console.log('Testing chat endpoint...');
+                const chatResponse = await fetch('http://localhost:4000/api/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Hello from debug test',
+                        walletAddress: 'debug-wallet-123'
+                    })
+                });
+                
+                const chatData = await chatResponse.json();
+                console.log('Chat response:', chatData);
+                results.innerHTML += `<p>✅ Chat response: ${JSON.stringify(chatData)}</p>`;
+                
+            } catch (error) {
+                console.error('API test failed:', error);
+                results.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
