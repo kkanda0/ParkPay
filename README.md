@@ -1,4 +1,4 @@
-# ParkPay
+# PayPark
 
 **Smart Parking with XRPL Integration**
 
