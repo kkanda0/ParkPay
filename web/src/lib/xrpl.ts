@@ -161,13 +161,17 @@ export class XRPLService {
       // Special case: When sending to the issuer, we're "returning" the tokens
       // In this case, the issuer field should be the issuer (not omitted)
       // The XRPL will handle this as burning/returning tokens
+      // Format amount to proper decimal precision for XRPL
+      // XRPL supports up to 15 decimal places for issued currencies
+      const formattedAmount = Number(amount.toFixed(6)) // Limit to 6 decimal places
+      
       const payment = {
         TransactionType: 'Payment' as const,
         Account: this.wallet.address,
         Destination: destinationAddress,
         Amount: {
           currency: RLUSD_CURRENCY,
-          value: amount.toString(),
+          value: formattedAmount.toString(),
           issuer: RLUSD_ISSUER
         }
       }

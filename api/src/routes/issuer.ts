@@ -4,10 +4,9 @@ import { Client, Wallet } from 'xrpl'
 const router: Router = Router()
 
 // Genesis Bank (RLUSD Issuer) Credentials
-// In production, these would come from process.env
-const ISSUER_ADDRESS = 'rsYrh38VnK3GkKD2EscXtFhiZmbC9Y62ZL'
-const ISSUER_SECRET = 'sEdTnd9BLgnMUGBrMCuh2BDCjnM75hQ'
-const XRPL_SERVER = 'wss://s.altnet.rippletest.net:51233'
+const ISSUER_ADDRESS = process.env.ISSUER_ADDRESS || 'rsYrh38VnK3GkKD2EscXtFhiZmbC9Y62ZL'
+const ISSUER_SECRET = process.env.ISSUER_SECRET || 'sEdTnd9BLgnMUGBrMCuh2BDCjnM75hQ'
+const XRPL_SERVER = process.env.XRPL_SERVER || 'wss://s.altnet.rippletest.net:51233'
 
 /**
  * POST /api/issuer/fund
@@ -41,6 +40,9 @@ router.post('/fund', async (req, res) => {
     // Import issuer wallet
     const issuerWallet = Wallet.fromSeed(ISSUER_SECRET)
 
+    // Format amount to proper decimal precision for XRPL
+    const formattedAmount = Number(amount.toFixed(6)) // Limit to 6 decimal places
+    
     // Create payment transaction
     const payment = {
       TransactionType: 'Payment' as const,
@@ -48,7 +50,7 @@ router.post('/fund', async (req, res) => {
       Destination: userAddress,
       Amount: {
         currency: 'USD',
-        value: amount.toString(),
+        value: formattedAmount.toString(),
         issuer: ISSUER_ADDRESS
       }
     }
@@ -127,7 +129,7 @@ router.post('/pay-parking', async (req, res) => {
       Destination: ISSUER_ADDRESS,
       Amount: {
         currency: 'USD',
-        value: amount.toString(),
+        value: Number(amount.toFixed(6)).toString(),
         issuer: ISSUER_ADDRESS
       }
     }
