@@ -2,6 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import EchoPriceRow from './EchoPriceRow';
+import { cn } from '@/lib/utils';
 
 interface ParkingSpot {
   id: string;
@@ -21,9 +22,11 @@ interface SelectedSpotCardProps {
   spot: ParkingSpot | null;
   onClose: () => void;
   onStartSession: (spotId: string) => void;
+  currentSession?: any | null;
+  onPriceCalculated?: (priceRLUSD: number) => void;
 }
 
-export default function SelectedSpotCard({ spot, onClose, onStartSession }: SelectedSpotCardProps) {
+export default function SelectedSpotCard({ spot, onClose, onStartSession, currentSession, onPriceCalculated }: SelectedSpotCardProps) {
 
   if (!spot) return null;
 
@@ -68,20 +71,26 @@ export default function SelectedSpotCard({ spot, onClose, onStartSession }: Sele
             lon={spot.lon} 
             locationName={spot.label || spot.name}
             baseUSD={spot.rate || 5.0}
+            onPriceCalculated={onPriceCalculated}
           />
 
 
           {/* Action Button */}
           <button
             onClick={handleStartSession}
-            disabled={spot.status !== "FREE"}
+            disabled={spot.status !== "FREE" || !!currentSession}
             className={`w-full font-semibold py-3 rounded-2xl transition-all duration-300 transform ${
-              spot.status === "FREE"
+              spot.status === "FREE" && !currentSession
                 ? "bg-gradient-to-r from-cyan-400 to-purple-500 text-black hover:from-cyan-300 hover:to-purple-400 hover:scale-105"
                 : "bg-gray-700 text-gray-400 cursor-not-allowed"
             }`}
           >
-            {spot.status === "FREE" ? "Start Parking Session" : "Currently Occupied"}
+            {currentSession 
+              ? "Session Already Active" 
+              : spot.status === "FREE" 
+                ? "Start Parking Session" 
+                : "Currently Occupied"
+            }
           </button>
         </div>
       </motion.div>

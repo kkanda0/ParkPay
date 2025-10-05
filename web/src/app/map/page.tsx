@@ -32,7 +32,7 @@ interface ParkingSpot {
 }
 
 export default function MapPage() {
-  const { walletAddress } = useApp()
+  const { walletAddress, currentSession } = useApp()
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null)
 
   const handleSpotSelect = (spot: ParkingSpot) => {
@@ -46,6 +46,21 @@ export default function MapPage() {
   const handleStartSession = (spotId: string) => {
     // Navigate to spot detail page
     window.location.href = `/spot/${spotId}`
+  }
+
+  const handlePriceCalculated = (priceRLUSD: number) => {
+    // Store the AI-calculated price in localStorage for the session page
+    const currentGarageInfo = localStorage.getItem('selectedParkingGarage')
+    if (currentGarageInfo) {
+      try {
+        const garageInfo = JSON.parse(currentGarageInfo)
+        garageInfo.hourlyRate = priceRLUSD
+        localStorage.setItem('selectedParkingGarage', JSON.stringify(garageInfo))
+        console.log('💾 Updated garage info with AI price:', garageInfo)
+      } catch (e) {
+        console.error('Error updating garage info:', e)
+      }
+    }
   }
 
   return (
@@ -77,6 +92,18 @@ export default function MapPage() {
             console.error('Failed to get AI pricing for map, using fallback:', error)
           }
           
+          // Store parking garage info and AI-generated price in localStorage for the session page
+          if (parkingGarage) {
+            const garageInfo = {
+              name: parkingGarage.name,
+              address: parkingGarage.address,
+              position: parkingGarage.position,
+              hourlyRate: realRate // Store the AI-generated hourly rate
+            }
+            localStorage.setItem('selectedParkingGarage', JSON.stringify(garageInfo))
+            console.log('💾 Stored parking garage info:', garageInfo)
+          }
+          
           // Convert TomTom spot format to our ParkingSpot format
           const parkingSpot: ParkingSpot = {
             id: spot.id,
@@ -101,6 +128,8 @@ export default function MapPage() {
           spot={selectedSpot}
           onClose={handleCloseCard}
           onStartSession={handleStartSession}
+          currentSession={currentSession}
+          onPriceCalculated={handlePriceCalculated}
         />
       )}
 

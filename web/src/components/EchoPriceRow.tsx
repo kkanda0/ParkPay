@@ -10,6 +10,7 @@ interface PriceRowProps {
   lon: number;
   locationName?: string;
   baseUSD?: number;
+  onPriceCalculated?: (priceRLUSD: number) => void;
 }
 
 interface PricingData {
@@ -42,7 +43,7 @@ interface CheckWhyData {
   recommendations: string[];
 }
 
-export default function EchoPriceRow({ lat, lon, locationName, baseUSD = 5.0 }: PriceRowProps) {
+export default function EchoPriceRow({ lat, lon, locationName, baseUSD = 5.0, onPriceCalculated }: PriceRowProps) {
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [checkWhyData, setCheckWhyData] = useState<CheckWhyData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +90,11 @@ export default function EchoPriceRow({ lat, lon, locationName, baseUSD = 5.0 }: 
           streetAddress: result.data.streetAddress,
           nearbySpots: result.data.nearbySpots
         });
+        
+        // Pass the calculated price back to parent
+        if (onPriceCalculated) {
+          onPriceCalculated(result.data.priceRLUSD);
+        }
       } else {
         setError(result.error || 'Failed to calculate pricing');
       }

@@ -15,6 +15,47 @@ const chatSchema = z.object({
   }).optional()
 });
 
+const pricingSchema = z.object({
+  action: z.enum(['calculate', 'checkWhy']),
+  lat: z.number(),
+  lon: z.number(),
+  baseUSD: z.number().optional().default(5.0),
+  locationName: z.string().optional(),
+  currentPrice: z.number().optional(),
+  timestamp: z.string().optional()
+});
+
+// Echo Pricing endpoint
+router.post('/echo-pricing', async (req, res) => {
+  try {
+    const { action, lat, lon, baseUSD, locationName, currentPrice } = pricingSchema.parse(req.body);
+    
+    if (action === 'calculate') {
+      // Calculate dynamic pricing using AI
+      const pricing = await calculateDynamicPricing(lat, lon, baseUSD, locationName);
+      
+      res.json({
+        success: true,
+        data: pricing
+      });
+    } else if (action === 'checkWhy') {
+      // Get explanation for pricing
+      const explanation = await getPricingExplanation(lat, lon, currentPrice, locationName);
+      
+      res.json({
+        success: true,
+        data: explanation
+      });
+    } else {
+      res.status(400).json({ error: 'Invalid action' });
+    }
+    
+  } catch (error) {
+    console.error('Error in echo pricing:', error);
+    res.status(500).json({ error: 'Failed to calculate pricing' });
+  }
+});
+
 // Echo by Merit Chat endpoint
 router.post('/chat', async (req, res) => {
   try {
@@ -538,5 +579,126 @@ router.get('/auth/validate', async (req, res) => {
     res.status(401).json({ error: 'Invalid token' });
   }
 });
+
+// Dynamic pricing calculation using AI
+async function calculateDynamicPricing(lat: number, lon: number, baseUSD: number, locationName?: string) {
+  // Simulate AI-powered dynamic pricing based on location, time, and demand
+  const timeOfDay = new Date().getHours();
+  const dayOfWeek = new Date().getDay();
+  
+  // Base pricing factors
+  let locationMultiplier = 1.0;
+  let timeMultiplier = 1.0;
+  let demandMultiplier = 1.0;
+  
+  // Location-based pricing (Manhattan premium)
+  if (lat >= 40.7 && lat <= 40.8 && lon >= -74.05 && lon <= -73.9) {
+    locationMultiplier = 1.5; // Manhattan premium
+  } else if (lat >= 40.6 && lat <= 40.7) {
+    locationMultiplier = 1.2; // Brooklyn/Queens
+  }
+  
+  // Time-based pricing
+  if (timeOfDay >= 7 && timeOfDay <= 9) {
+    timeMultiplier = 1.3; // Morning rush
+  } else if (timeOfDay >= 17 && timeOfDay <= 19) {
+    timeMultiplier = 1.4; // Evening rush
+  } else if (timeOfDay >= 22 || timeOfDay <= 6) {
+    timeMultiplier = 0.7; // Night discount
+  }
+  
+  // Day-based pricing
+  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    timeMultiplier *= 1.1; // Weekday premium
+  }
+  
+  // Random demand factor (simulating real-time demand)
+  demandMultiplier = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+  
+  // Calculate final price
+  const priceUSD = baseUSD * locationMultiplier * timeMultiplier * demandMultiplier;
+  const priceRLUSD = priceUSD * 1.0004; // RLUSD conversion rate
+  
+  // Generate explanation
+  const factors = [];
+  if (locationMultiplier > 1.0) factors.push(`Location premium (${Math.round((locationMultiplier - 1) * 100)}%)`);
+  if (timeMultiplier > 1.0) factors.push(`Peak time pricing (${Math.round((timeMultiplier - 1) * 100)}%)`);
+  if (demandMultiplier > 1.0) factors.push(`High demand (${Math.round((demandMultiplier - 1) * 100)}%)`);
+  if (demandMultiplier < 1.0) factors.push(`Low demand (${Math.round((1 - demandMultiplier) * 100)}% discount)`);
+  
+  return {
+    priceUSD: Math.round(priceUSD * 100) / 100,
+    priceRLUSD: Math.round(priceRLUSD * 10000) / 10000,
+    rlusdRate: 1.0004,
+    explanation: `Dynamic pricing based on location, time, and demand. ${factors.join(', ')}.`,
+    confidence: 85,
+    components: {
+      basePrice: baseUSD,
+      locationMultiplier,
+      timeMultiplier,
+      demandMultiplier,
+      finalPrice: priceUSD
+    },
+    marketFactors: factors,
+    streetAddress: locationName || 'Parking Location',
+    nearbySpots: [
+      {
+        name: 'Nearby Garage 1',
+        address: '123 Main St',
+        price: priceUSD * 0.9,
+        distance: '0.2 miles',
+        availability: 'Available'
+      },
+      {
+        name: 'Nearby Garage 2', 
+        address: '456 Oak Ave',
+        price: priceUSD * 1.1,
+        distance: '0.4 miles',
+        availability: 'Limited'
+      }
+    ]
+  };
+}
+
+// Get pricing explanation
+async function getPricingExplanation(lat: number, lon: number, currentPrice: number, locationName?: string) {
+  const timeOfDay = new Date().getHours();
+  const dayOfWeek = new Date().getDay();
+  
+  const explanations = [];
+  const factors = [];
+  const recommendations = [];
+  
+  // Location analysis
+  if (lat >= 40.7 && lat <= 40.8 && lon >= -74.05 && lon <= -73.9) {
+    explanations.push('This is a premium Manhattan location with high demand and limited parking availability.');
+    factors.push('Prime Manhattan location');
+    factors.push('High foot traffic area');
+    recommendations.push('Consider booking in advance during peak hours');
+  }
+  
+  // Time analysis
+  if (timeOfDay >= 7 && timeOfDay <= 9 || timeOfDay >= 17 && timeOfDay <= 19) {
+    explanations.push('Current pricing reflects peak commuting hours with increased demand.');
+    factors.push('Rush hour pricing');
+    recommendations.push('Consider parking during off-peak hours for lower rates');
+  }
+  
+  // Day analysis
+  if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+    explanations.push('Weekday pricing includes business district premium.');
+    factors.push('Business day premium');
+  } else {
+    explanations.push('Weekend pricing with reduced business activity.');
+    factors.push('Weekend rates');
+    recommendations.push('Weekend parking typically offers better value');
+  }
+  
+  return {
+    explanation: explanations.join(' ') || 'Standard market pricing based on location and time.',
+    factors,
+    recommendations
+  };
+}
 
 export default router;

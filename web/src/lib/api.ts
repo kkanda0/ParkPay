@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'
 
 export interface ParkingLot {
   id: string
@@ -121,7 +121,7 @@ class ApiService {
   }
 
   async getEchoPricing(lat: number, lon: number, baseUSD: number = 5.0, locationName?: string) {
-    return this.request('/echo-pricing', {
+    return this.request('/ai/echo-pricing', {
       method: 'POST',
       body: JSON.stringify({ 
         action: 'calculate',
