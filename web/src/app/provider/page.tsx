@@ -36,6 +36,7 @@ export default function ProviderPage() {
           name: 'Main Street Parking',
           address: '123 Main Street, Downtown',
           totalSpots: 20,
+          availableSpots: 3,
           latitude: 40.7128,
           longitude: -74.0060,
           ratePerMin: 0.12

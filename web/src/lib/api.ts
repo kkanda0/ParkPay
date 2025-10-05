@@ -5,6 +5,7 @@ export interface ParkingLot {
   name: string
   address: string
   totalSpots: number
+  availableSpots: number
   latitude: number
   longitude: number
   ratePerMin: number
@@ -28,6 +29,10 @@ export interface Session {
   status: 'ACTIVE' | 'ENDED' | 'CANCELLED'
   xrplTxHash?: string
   currentAmount?: number
+  parkingGarage?: {
+    name: string
+    address: string
+  }
 }
 
 export interface Wallet {
@@ -175,6 +180,28 @@ class ApiService {
     return this.request(`/provider/anomaly/${anomalyId}/resolve`, {
       method: 'POST',
     })
+  }
+
+  // Parking endpoints
+  async getParkingLots(bbox?: string): Promise<ParkingLot[]> {
+    const params = bbox ? `?bbox=${bbox}` : ''
+    const response = await this.request<{ data: ParkingLot[] }>(`/parking/lots${params}`)
+    return response.data
+  }
+
+  async getParkingLot(id: string): Promise<ParkingLot> {
+    const response = await this.request<{ data: ParkingLot }>(`/parking/lots/${id}`)
+    return response.data
+  }
+
+  async refreshParkingLot(id: string) {
+    return this.request(`/parking/lots/${id}/refresh`, {
+      method: 'POST',
+    })
+  }
+
+  async getParkingHealth() {
+    return this.request('/parking/health')
   }
 
   // Health check
