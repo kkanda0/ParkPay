@@ -28,6 +28,20 @@ export default function SpotPage() {
   const confettiRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
+    // Get parking garage info from localStorage (set by map page)
+    const parkingGarageInfo = typeof window !== 'undefined' 
+      ? localStorage.getItem('selectedParkingGarage') 
+      : null
+    
+    let garageData = { name: 'iPark-44 Elizabeth Street Parking Garage', address: '44 Elizabeth Street, New York, NY 10013' }
+    if (parkingGarageInfo) {
+      try {
+        garageData = JSON.parse(parkingGarageInfo)
+      } catch (e) {
+        console.error('Error parsing parking garage info:', e)
+      }
+    }
+
     // For demo purposes, create a mock session
     const mockSession: Session = {
       id: `session-${Date.now()}`,
@@ -36,7 +50,8 @@ export default function SpotPage() {
       parkingLotId: 'demo-lot-1',
       startTime: new Date().toISOString(),
       status: 'ACTIVE',
-      currentAmount: 0
+      currentAmount: 0,
+      parkingGarage: garageData
     }
     
     setSession(mockSession)

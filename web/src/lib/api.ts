@@ -29,6 +29,10 @@ export interface Session {
   status: 'ACTIVE' | 'ENDED' | 'CANCELLED'
   xrplTxHash?: string
   currentAmount?: number
+  parkingGarage?: {
+    name: string
+    address: string
+  }
 }
 
 export interface Wallet {

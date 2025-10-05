@@ -27,6 +27,7 @@ export default function MapPage() {
   const [spots, setSpots] = useState<Spot[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null)
+  const [selectedParkingGarage, setSelectedParkingGarage] = useState<{ name: string, address: string } | null>(null)
   const [sessionDuration, setSessionDuration] = useState(0)
   const [sessionAmount, setSessionAmount] = useState(0)
 
@@ -154,7 +155,17 @@ export default function MapPage() {
       <TomTomMapFinal 
         parkingLot={parkingLot}
         spots={spots}
-        onSpotSelect={setSelectedSpot}
+        onSpotSelect={(spot, parkingGarage) => {
+          setSelectedSpot(spot)
+          if (parkingGarage) {
+            setSelectedParkingGarage(parkingGarage)
+            // Store parking garage info in localStorage for the spot page
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('selectedParkingGarage', JSON.stringify(parkingGarage))
+            }
+          }
+        }}
+        currentSession={currentSession}
       />
 
       {/* Navigation */}

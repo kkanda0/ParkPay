@@ -9,10 +9,11 @@ import Script from 'next/script'
 interface TomTomMapFinalProps {
   parkingLot: ParkingLot | null
   spots: Spot[]
-  onSpotSelect: (spot: Spot) => void
+  onSpotSelect: (spot: Spot, parkingGarage?: { name: string, address: string }) => void
+  currentSession?: any | null
 }
 
-export default function TomTomMapFinal({ parkingLot, spots, onSpotSelect }: TomTomMapFinalProps) {
+export default function TomTomMapFinal({ parkingLot, spots, onSpotSelect, currentSession }: TomTomMapFinalProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const [sdkLoaded, setSDKLoaded] = useState(false)
@@ -306,15 +307,15 @@ export default function TomTomMapFinal({ parkingLot, spots, onSpotSelect }: TomT
           </>
         )}
 
-        {/* Clean UI for Selected Parking */}
+        {/* Clean UI for Selected Parking - TOP LEFT */}
         <AnimatePresence>
           {selectedParking && (
             <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
+              initial={{ opacity: 0, x: -100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-30"
+              className="absolute top-4 left-4 z-30"
             >
               <div className="glass-strong rounded-2xl p-6 min-w-[350px] max-w-[400px]">
                 {/* Close button */}
@@ -348,17 +349,37 @@ export default function TomTomMapFinal({ parkingLot, spots, onSpotSelect }: TomT
                 </div>
 
                 {/* Start Parking Button */}
-                <button
-                  onClick={() => {
-                    console.log('🚗 Starting parking session:', selectedParking)
-                    // TODO: Navigate to parking session page or start session
-                    alert('Starting parking session... (Integration coming soon!)')
-                  }}
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/50"
-                >
-                  <Car className="w-5 h-5" />
-                  <span>Start Parking Session</span>
-                </button>
+                {currentSession && currentSession.status === 'ACTIVE' ? (
+                  <button
+                    disabled
+                    className="w-full bg-gray-600 text-gray-400 font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg cursor-not-allowed"
+                  >
+                    <Car className="w-5 h-5" />
+                    <span>Session Active</span>
+                  </button>
+                ) : (
+                  <a href="/spot/spot-1">
+                    <button
+                      onClick={() => {
+                        console.log('🚗 Starting parking session:', selectedParking)
+                        // Trigger spot selection callback with parking garage info
+                        if (onSpotSelect) {
+                          onSpotSelect(
+                            { id: 'spot-1', number: 1, isAvailable: true, parkingLotId: 'demo-lot-1' },
+                            { 
+                              name: selectedParking.name, 
+                              address: selectedParking.address 
+                            }
+                          )
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/50"
+                    >
+                      <Car className="w-5 h-5" />
+                      <span>Start Parking Session</span>
+                    </button>
+                  </a>
+                )}
               </div>
             </motion.div>
           )}

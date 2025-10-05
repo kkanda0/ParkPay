@@ -375,9 +375,14 @@ export default function SessionsPage() {
           </div>
           
           <div className="mt-4 pt-4 border-t border-gray-700">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Spot:</span>
-              <span className="text-white">#{currentSession.spotId.split('-')[1]}</span>
+            <div className="text-sm">
+              <div className="text-gray-400 mb-1">Parking Garage:</div>
+              <div className="text-white font-medium">
+                {currentSession.parkingGarage?.name || 'iPark-44 Elizabeth Street Parking Garage'}
+              </div>
+              <div className="text-gray-300 text-xs mt-1">
+                {currentSession.parkingGarage?.address || '44 Elizabeth Street, New York, NY 10013'}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -420,9 +425,14 @@ export default function SessionsPage() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <MapPin className="w-5 h-5 text-cyan-400" />
-                    <span className="text-white font-medium">
-                      Spot #{session.spotId.split('-')[1]}
-                    </span>
+                    <div>
+                      <div className="text-white font-medium">
+                        {session.parkingGarage?.name || 'iPark-44 Elizabeth Street Parking Garage'}
+                      </div>
+                      <div className="text-gray-400 text-xs">
+                        {session.parkingGarage?.address || '44 Elizabeth Street, New York, NY 10013'}
+                      </div>
+                    </div>
                   </div>
                   <span className={`text-sm font-medium ${getSessionStatusColor(session.status)}`}>
                     {getSessionStatusText(session.status)}
