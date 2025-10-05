@@ -68,14 +68,14 @@ ParkPay/
 │   │   └── lib/       # Utilities & services
 │   └── package.json
 ├── config/             # Configuration files
-│   ├── setup.sh       # Automated setup script
-│   ├── pnpm-lock.yaml # Dependency lock file
-│   └── pnpm-workspace.yaml # Workspace configuration
+│   └── setup.sh       # Automated setup script
 ├── docs/              # All documentation
 │   ├── SETUP.md       # Detailed setup guide
 │   ├── SYSTEM_ARCHITECTURE.md
 │   └── ...           # Other documentation
-└── package.json       # Root package.json with workspace config
+├── package.json       # Root package.json with workspace config
+├── pnpm-lock.yaml     # Dependency lock file
+└── pnpm-workspace.yaml # Workspace configuration
 ```
 
 ## Documentation
