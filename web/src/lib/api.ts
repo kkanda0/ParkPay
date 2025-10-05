@@ -123,7 +123,13 @@ class ApiService {
   async getEchoPricing(lat: number, lon: number, baseUSD: number = 5.0, locationName?: string) {
     return this.request('/echo-pricing', {
       method: 'POST',
-      body: JSON.stringify({ lat, lon, baseUSD, locationName }),
+      body: JSON.stringify({ 
+        action: 'calculate',
+        lat, 
+        lon, 
+        baseUSD, 
+        locationName 
+      }),
     })
   }
 
