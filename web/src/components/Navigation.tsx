@@ -24,8 +24,12 @@ export default function Navigation() {
   }
 
   const handleLogout = () => {
-    // For now, just redirect to home page
-    // Later you can add actual logout logic here
+    // Clear any stored authentication data
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+    // Redirect to homepage
     router.push('/')
   }
 

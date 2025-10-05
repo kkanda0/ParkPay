@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
 
@@ -14,7 +15,7 @@ const chatSchema = z.object({
   }).optional()
 });
 
-// Echo AI Chat endpoint
+// Echo by Merit Chat endpoint
 router.post('/chat', async (req, res) => {
   try {
     const prisma = req.app.get('prisma') as PrismaClient;
@@ -38,8 +39,8 @@ router.post('/chat', async (req, res) => {
       });
     }
     
-    // Simulate Echo AI response (in real implementation, call Echo AI API)
-    const response = await simulateEchoAIResponse(message, {
+    // Call Echo by Merit API
+    const response = await callEchoMeritAPI(message, {
       sessionContext,
       parkingLotContext,
       walletAddress
@@ -52,7 +53,7 @@ router.post('/chat', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error in AI chat:', error);
+    console.error('Error in Echo by Merit chat:', error);
     res.status(500).json({ error: 'Failed to process chat message' });
   }
 });
@@ -169,7 +170,67 @@ router.get('/insights/:parkingLotId', async (req, res) => {
   }
 });
 
-// Helper functions
+// Echo by Merit API Integration using Merit's SDK
+async function callEchoMeritAPI(message: string, context: any) {
+  const ECHO_MERIT_API_KEY = process.env.ECHO_MERIT_API_KEY;
+  
+  if (!ECHO_MERIT_API_KEY) {
+    console.warn('Echo by Merit API key not configured, using fallback response');
+    return simulateEchoAIResponse(message, context);
+  }
+  
+  try {
+    // Prepare context for Echo by Merit
+    const contextData = {
+      parking: {
+        session: context.sessionContext,
+        parkingLot: context.parkingLotContext,
+        walletAddress: context.walletAddress
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    // Call Echo by Merit API using their standard endpoint
+    const response = await fetch('https://api.echo.merit.systems/v1/chat', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ECHO_MERIT_API_KEY}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'ParkPay/1.0'
+      },
+      body: JSON.stringify({
+        message,
+        context: contextData,
+        model: 'gpt-4',
+        temperature: 0.7,
+        max_tokens: 500
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Echo by Merit API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    return {
+      message: data.response || data.message || 'I received your message and I\'m processing it.',
+      suggestions: data.suggestions || [
+        "How does ParkPay work?",
+        "Check my balance", 
+        "Find parking spots",
+        "View my sessions"
+      ]
+    };
+    
+  } catch (error) {
+    console.error('Echo by Merit API call failed:', error);
+    // Fallback to simulated response
+    return simulateEchoAIResponse(message, context);
+  }
+}
+
+// Fallback helper function
 async function simulateEchoAIResponse(message: string, context: any) {
   // Simulate AI processing delay
   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -281,5 +342,201 @@ function generateRecommendations(data: any) {
   
   return recommendations;
 }
+
+// Echo by Merit user sync function
+async function syncUserWithEchoMerit(user: any) {
+  const ECHO_MERIT_API_KEY = process.env.ECHO_MERIT_API_KEY;
+  const ECHO_MERIT_BASE_URL = process.env.ECHO_MERIT_BASE_URL || 'https://api.echo.merit.com';
+  
+  if (!ECHO_MERIT_API_KEY) {
+    console.warn('Echo by Merit API key not configured, skipping user sync');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${ECHO_MERIT_BASE_URL}/v1/users`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ECHO_MERIT_API_KEY}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'ParkPay/1.0'
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        auth0Id: user.auth0Id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        preferences: JSON.parse(user.preferences),
+        parkingHistory: JSON.parse(user.parkingHistory),
+        createdAt: user.createdAt
+      })
+    });
+    
+    if (response.ok) {
+      console.log(`✅ User ${user.email} synced with Echo by Merit`);
+    } else {
+      console.error(`❌ Failed to sync user with Echo by Merit: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error syncing user with Echo by Merit:', error);
+  }
+}
+
+// Echo by Merit Authentication Endpoints
+const JWT_SECRET = process.env.JWT_SECRET || 'echo-ai-secret-key-change-in-production';
+
+// Register new user endpoint
+router.post('/auth/register', async (req, res) => {
+  try {
+    const prisma = req.app.get('prisma') as PrismaClient;
+    const { email, name, password } = req.body;
+    
+    if (!email || !name || !password) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+    
+    // Create new user
+    const user = await prisma.user.create({
+      data: {
+        auth0Id: `merit_${Date.now()}`, // Generate unique ID
+        email,
+        name,
+        picture: null,
+        preferences: JSON.stringify({
+          notifications: true,
+          darkMode: true,
+          language: 'en'
+        }),
+        parkingHistory: JSON.stringify({
+          totalSessions: 0,
+          totalSpent: 0,
+          favoriteSpots: []
+        })
+      }
+    });
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    console.log(`✅ New user registered: ${user.email}`);
+    
+    res.status(201).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        preferences: JSON.parse(user.preferences),
+        parkingHistory: JSON.parse(user.parkingHistory)
+      },
+      message: 'User registered successfully'
+    });
+    
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+// Sign in user endpoint
+router.post('/auth/login', async (req, res) => {
+  try {
+    const prisma = req.app.get('prisma') as PrismaClient;
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Missing email or password' });
+    }
+    
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    console.log(`✅ User signed in: ${user.email}`);
+    
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        preferences: JSON.parse(user.preferences),
+        parkingHistory: JSON.parse(user.parkingHistory)
+      },
+      message: 'Login successful'
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+// GET /api/ai/auth/validate
+router.get('/auth/validate', async (req, res) => {
+  try {
+    const prisma = req.app.get('prisma') as PrismaClient;
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    // Find user by meritUserId
+    const user = await prisma.user.findUnique({
+      where: { auth0Id: decoded.meritUserId }
+    });
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+    
+    res.json({
+      user: {
+        id: user.id,
+        meritUserId: user.auth0Id,
+        email: user.email,
+        name: user.name,
+        avatar: user.picture,
+        preferences: JSON.parse(user.preferences),
+        parkingHistory: JSON.parse(user.parkingHistory)
+      },
+      message: 'Token valid'
+    });
+    
+  } catch (error) {
+    console.error('Token validation error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
 
 export default router;
