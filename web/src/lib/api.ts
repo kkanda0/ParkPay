@@ -33,6 +33,19 @@ export interface Session {
     name: string
     address: string
   }
+  parkingLot?: {
+    id: string
+    name: string
+    address: string
+    ratePerMin: number
+    latitude: number
+    longitude: number
+  }
+  spot?: {
+    id: string
+    number: number
+    isAvailable: boolean
+  }
 }
 
 export interface Wallet {
@@ -99,11 +112,18 @@ class ApiService {
     return response.json()
   }
 
-  // Session endpoints
-  async startSession(walletAddress: string, spotId: string) {
-    return this.request('/session/start', {
+  // Pricing endpoints
+  async calculatePricing(lat: number, lon: number, baseUSD: number = 5.0) {
+    return this.request('/pricing/calculate', {
       method: 'POST',
-      body: JSON.stringify({ walletAddress, spotId }),
+      body: JSON.stringify({ lat, lon, baseUSD }),
+    })
+  }
+
+  async getEchoPricing(lat: number, lon: number, baseUSD: number = 5.0, locationName?: string) {
+    return this.request('/echo-pricing', {
+      method: 'POST',
+      body: JSON.stringify({ lat, lon, baseUSD, locationName }),
     })
   }
 

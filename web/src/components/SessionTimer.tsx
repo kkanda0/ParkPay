@@ -23,7 +23,11 @@ export default function SessionTimer() {
       const diffSeconds = Math.floor(diffMs / 1000)
       
       setDuration(diffSeconds)
-      setCurrentAmount((diffSeconds / 60) * 0.12) // Demo rate: 0.12 RLUSD per minute
+      
+      // Use real hourly rate from parking lot data, convert to per-second rate
+      const hourlyRate = currentSession.parkingLot?.ratePerMin ? currentSession.parkingLot.ratePerMin * 60 : 14.27 // Default fallback
+      const ratePerSecond = hourlyRate / 3600 // Convert hourly rate to per-second rate
+      setCurrentAmount(diffSeconds * ratePerSecond)
     }
 
     // Update immediately on mount
