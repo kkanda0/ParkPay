@@ -124,8 +124,7 @@ function AuthComponent() {
 // Main content component that uses Echo hooks
 function HomePageContent() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-4 pb-20">
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-8 pb-32">
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -156,7 +155,16 @@ function HomePageContent() {
           transition={{ delay: 0.6 }}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          <AuthComponent />
+          <Link href="/map">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="btn-primary px-12 py-6 rounded-2xl text-xl font-semibold"
+            >
+              Find Parking
+            </motion.button>
+          </Link>
+          
         </motion.div>
       </motion.div>
 
@@ -175,8 +183,8 @@ function HomePageContent() {
           },
           {
             icon: Brain,
-            title: "Echo by Merit AI",
-            description: "Smart insights and personalized recommendations"
+            title: "Echo AI + Opik by Comet",
+            description: "Smart insights and curated recommendations"
           },
           {
             icon: Shield,
@@ -209,6 +217,7 @@ function HomePageContent() {
           )
         })}
       </motion.div>
+
     </div>
   )
 }
