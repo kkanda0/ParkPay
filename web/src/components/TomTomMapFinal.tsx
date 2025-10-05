@@ -169,12 +169,21 @@ export default function TomTomMapFinal({ parkingLot, spots, onSpotSelect, curren
             })
             
             // Set selected parking for clean UI display
-            setSelectedParking({
+            const parkingData = {
               name: parkingName,
               address: address,
               distance: distance,
               position: result.position
-            })
+            };
+            setSelectedParking(parkingData);
+            
+            // Immediately trigger onSpotSelect callback with coordinates
+            if (onSpotSelect) {
+              onSpotSelect(
+                { id: `parking-${result.id || Math.random()}`, number: 1, isAvailable: true, parkingLotId: 'tomtom-search' },
+                parkingData
+              );
+            }
           })
 
           // Create marker with center anchor to prevent flying
@@ -307,9 +316,9 @@ export default function TomTomMapFinal({ parkingLot, spots, onSpotSelect, curren
           </>
         )}
 
-        {/* Clean UI for Selected Parking - TOP LEFT */}
+        {/* Clean UI for Selected Parking - TOP LEFT - HIDDEN (using SelectedSpotCard instead) */}
         <AnimatePresence>
-          {selectedParking && (
+          {false && selectedParking && (
             <motion.div
               initial={{ opacity: 0, x: -100 }}
               animate={{ opacity: 1, x: 0 }}

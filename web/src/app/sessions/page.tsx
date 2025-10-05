@@ -110,7 +110,11 @@ export default function SessionsPage() {
       const diffSeconds = Math.floor(diffMs / 1000)
       
       setSessionDuration(diffSeconds)
-      setSessionAmount((diffSeconds / 60) * 0.12) // Demo rate: 0.12 RLUSD per minute
+      
+      // Use real hourly rate from parking lot data, convert to per-second rate
+      const hourlyRate = currentSession.parkingLot?.ratePerMin ? currentSession.parkingLot.ratePerMin * 60 : 14.27 // Default fallback
+      const ratePerSecond = hourlyRate / 3600 // Convert hourly rate to per-second rate
+      setSessionAmount(diffSeconds * ratePerSecond)
     }
 
     // Update immediately on mount
@@ -162,7 +166,11 @@ export default function SessionsPage() {
       const endTime = new Date()
       const diffMs = endTime.getTime() - startTime.getTime()
       const diffSeconds = Math.floor(diffMs / 1000)
-      const calculatedAmount = (diffSeconds / 60) * 0.12
+      
+      // Use real hourly rate from parking lot data, convert to per-second rate
+      const hourlyRate = currentSession.parkingLot?.ratePerMin ? currentSession.parkingLot.ratePerMin * 60 : 14.27 // Default fallback
+      const ratePerSecond = hourlyRate / 3600 // Convert hourly rate to per-second rate
+      const calculatedAmount = diffSeconds * ratePerSecond
       
       await new Promise(resolve => setTimeout(resolve, 2000))
       

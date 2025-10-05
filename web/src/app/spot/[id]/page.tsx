@@ -28,34 +28,69 @@ export default function SpotPage() {
   const confettiRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    // Get parking garage info from localStorage (set by map page)
-    const parkingGarageInfo = typeof window !== 'undefined' 
-      ? localStorage.getItem('selectedParkingGarage') 
-      : null
-    
-    let garageData = { name: 'iPark-44 Elizabeth Street Parking Garage', address: '44 Elizabeth Street, New York, NY 10013' }
-    if (parkingGarageInfo) {
-      try {
-        garageData = JSON.parse(parkingGarageInfo)
-      } catch (e) {
-        console.error('Error parsing parking garage info:', e)
+    const initializeSession = async () => {
+      // Get parking garage info from localStorage (set by map page)
+      const parkingGarageInfo = typeof window !== 'undefined' 
+        ? localStorage.getItem('selectedParkingGarage') 
+        : null
+      
+      let garageData = { name: 'iPark-44 Elizabeth Street Parking Garage', address: '44 Elizabeth Street, New York, NY 10013' }
+      let coordinates = { lat: 40.7128, lon: -74.0060 } // Default NYC coordinates
+      
+      if (parkingGarageInfo) {
+        try {
+          const parsed = JSON.parse(parkingGarageInfo)
+          garageData = { name: parsed.name || garageData.name, address: parsed.address || garageData.address }
+          if (parsed.position) {
+            coordinates = { lat: parsed.position.lat, lon: parsed.position.lon }
+          }
+        } catch (e) {
+          console.error('Error parsing parking garage info:', e)
+        }
       }
+
+      // Get real AI-calculated pricing
+      let realHourlyRate = 14.27 // Default fallback rate (RLUSD per hour)
+      try {
+        const pricingResponse = await apiService.getEchoPricing(coordinates.lat, coordinates.lon, 5.0, garageData.name)
+        if (pricingResponse && typeof pricingResponse === 'object' && 'success' in pricingResponse && pricingResponse.success && 'data' in pricingResponse && pricingResponse.data) {
+          // Store the hourly rate directly
+          realHourlyRate = (pricingResponse.data as any).priceRLUSD
+          console.log('💰 Real AI pricing:', {
+            hourly: realHourlyRate,
+            perSecond: realHourlyRate / 3600,
+            location: garageData.name
+          })
+        }
+      } catch (error) {
+        console.error('Failed to get AI pricing, using fallback:', error)
+      }
+
+      // Create session with real pricing data
+      const mockSession: Session = {
+        id: `session-${Date.now()}`,
+        walletAddress,
+        spotId,
+        parkingLotId: 'demo-lot-1',
+        startTime: new Date().toISOString(),
+        status: 'ACTIVE',
+        currentAmount: 0,
+        parkingGarage: garageData,
+        parkingLot: {
+          id: 'demo-lot-1',
+          name: garageData.name,
+          address: garageData.address,
+          ratePerMin: realHourlyRate / 60, // Convert hourly to per-minute for display
+          latitude: coordinates.lat,
+          longitude: coordinates.lon
+        }
+      }
+      
+      setSession(mockSession)
+      setCurrentSession(mockSession)
     }
 
-    // For demo purposes, create a mock session
-    const mockSession: Session = {
-      id: `session-${Date.now()}`,
-      walletAddress,
-      spotId,
-      parkingLotId: 'demo-lot-1',
-      startTime: new Date().toISOString(),
-      status: 'ACTIVE',
-      currentAmount: 0,
-      parkingGarage: garageData
-    }
-    
-    setSession(mockSession)
-    setCurrentSession(mockSession)
+    initializeSession()
     
     return () => {
       if (intervalRef.current) {
@@ -73,7 +108,11 @@ export default function SpotPage() {
         const diffSeconds = Math.floor(diffMs / 1000)
         
         setDuration(diffSeconds)
-        setCurrentAmount((diffSeconds / 60) * 0.12) // Demo rate: 0.12 RLUSD per minute
+        
+        // Use real hourly rate from parking lot data, convert to per-second rate
+        const hourlyRate = session.parkingLot?.ratePerMin ? session.parkingLot.ratePerMin * 60 : 14.27 // Default fallback
+        const ratePerSecond = hourlyRate / 3600 // Convert hourly rate to per-second rate
+        setCurrentAmount(diffSeconds * ratePerSecond)
       }, 1000)
     }
 
@@ -293,7 +332,9 @@ export default function SpotPage() {
           
           <div className="flex justify-between">
             <span className="text-gray-400">Rate:</span>
-            <span className="text-white font-medium">0.12 RLUSD/min</span>
+            <span className="text-white font-medium">
+              {(session?.parkingLot?.ratePerMin ? session.parkingLot.ratePerMin * 60 : 14.27) / 3600} RLUSD/sec
+            </span>
           </div>
           
           <div className="flex justify-between">
