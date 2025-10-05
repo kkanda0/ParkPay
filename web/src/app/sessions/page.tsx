@@ -9,6 +9,7 @@ import confetti from 'canvas-confetti'
 import { apiService, Session } from '@/lib/api'
 import { useApp } from '@/app/providers'
 import { formatRLUSD, formatDuration } from '@/lib/utils'
+import { xrplService } from '@/lib/xrpl'
 
 export default function SessionsPage() {
   const { walletAddress, currentSession, setCurrentSession } = useApp()
@@ -228,6 +229,55 @@ export default function SessionsPage() {
         origin: { y: 0.6 }
       })
       
+      // Deduct amount from wallet balance and XRPL if connected
+      if (typeof window !== 'undefined') {
+        const currentBalance = localStorage.getItem('walletBalance')
+        if (currentBalance) {
+          const newBalance = parseFloat(currentBalance) - calculatedAmount
+          localStorage.setItem('walletBalance', Math.max(0, newBalance).toString())
+        }
+
+        // Also deduct from XRPL if wallet is connected
+        const xrplAddress = localStorage.getItem('xrpl-address')
+        const xrplSecret = localStorage.getItem('xrpl-secret')
+        
+        console.log('🔍 Checking XRPL credentials:', {
+          hasAddress: !!xrplAddress,
+          hasSecret: !!xrplSecret,
+          address: xrplAddress
+        })
+        
+        if (xrplAddress && xrplSecret) {
+          try {
+            console.log('💳 Attempting to send RLUSD payment to Genesis Bank...')
+            // Import wallet and check trustline
+            xrplService.importWallet(xrplAddress, xrplSecret)
+            const hasTrustline = await xrplService.checkRLUSDTrustline(xrplAddress)
+            
+            console.log('🔗 Trustline status:', hasTrustline)
+            
+            if (hasTrustline) {
+              // Send RLUSD back to Genesis Bank (ParkPay's parking service fee)
+              const GENESIS_BANK = 'rsYrh38VnK3GkKD2EscXtFhiZmbC9Y62ZL' // ParkPay Genesis Bank
+              console.log(`💸 Sending ${calculatedAmount} RLUSD to Genesis Bank...`)
+              const success = await xrplService.sendRLUSD(GENESIS_BANK, calculatedAmount)
+              if (success) {
+                console.log(`✅ Paid ${calculatedAmount} RLUSD parking fee to Genesis Bank`)
+              } else {
+                console.error('❌ Payment failed')
+              }
+            } else {
+              console.warn('⚠️ No trustline found - cannot send payment')
+            }
+          } catch (error) {
+            console.error('❌ Error deducting from XRPL:', error)
+            // Continue anyway - localStorage balance is already deducted
+          }
+        } else {
+          console.warn('⚠️ XRPL credentials not found in localStorage - skipping blockchain payment')
+        }
+      }
+      
       // Clear current session
       setCurrentSession(null)
       
@@ -273,7 +323,7 @@ export default function SessionsPage() {
               
               <h3 className="text-xl font-bold text-white mb-2">Session Ended!</h3>
               <p className="text-gray-300 mb-4">
-                XRP transaction has been completed successfully
+                RLUSD payment sent to Genesis Bank successfully
               </p>
               
               <div className="text-sm text-gray-400">

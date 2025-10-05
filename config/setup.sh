@@ -2,6 +2,9 @@
 
 echo "🚀 Setting up ParkPay..."
 
+# Change to project root
+cd "$(dirname "$0")/.."
+
 # Install dependencies
 echo "📦 Installing dependencies..."
 pnpm install

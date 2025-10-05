@@ -1,189 +1,132 @@
-# 🚗 ParkPay
+# ParkPay
 
-A visually stunning parking micropayments dApp using **XRPL + RLUSD** for payments and **Echo AI** for smart insights.
+**Smart Parking with XRPL Integration**
 
-## ✨ Features
+ParkPay is a modern parking management system that combines real-time parking data with blockchain payments using the XRP Ledger (XRPL) and RLUSD tokens.
 
-- **🎨 Stunning Design**: Dark mode first with glassmorphism, gradients, and smooth animations
-- **⚡ Instant Payments**: XRPL-powered micropayments with RLUSD
-- **🤖 Echo AI**: Smart insights, anomaly detection, and chatbot assistance
-- **📍 Real-time Map**: Live spot availability with glowing markers
-- **⏱️ Live Billing**: Real-time session timers and RLUSD counters
-- **📊 Provider Dashboard**: Earnings analytics, occupancy heatmaps, and AI recommendations
-- **💬 AI Chat**: Intelligent assistant for parking questions and support
+## Quick Start
 
-## 🛠️ Tech Stack
-
-### Frontend
-- **Next.js 14** (App Router) + TypeScript
-- **TailwindCSS** + Custom design system
-- **Framer Motion** for smooth animations
-- **Lucide Icons** for beautiful icons
-- **Socket.io** for real-time updates
-- **Canvas Confetti** for celebration effects
-
-### Backend
-- **Node.js** + Express + TypeScript
-- **Prisma** + SQLite database
-- **Socket.io** for real-time communication
-- **XRPL integration** (stubbed for demo)
-- **Echo AI SDK** (stubbed for demo)
-
-## 🚀 Quick Start
-
-### Option 1: Automated Setup
 ```bash
-# Run the setup script
-./setup.sh
-```
+# Clone and setup
+git clone <repository-url>
+cd ParkPay
 
-### Option 2: Manual Setup
-```bash
-# Install dependencies
+# Quick setup (recommended)
+./config/setup.sh
+
+# OR manual setup
 pnpm install
-
-# Set up API
-cd api
-cp env.example .env
-pnpm prisma generate
-pnpm prisma migrate dev --name init
-pnpm prisma db seed
+cp api/.env.example api/.env
+pnpm --filter api prisma generate
+pnpm --filter api prisma migrate dev
 
 # Start development servers
-cd ..
 pnpm dev
 ```
 
-Open **http://localhost:3000** to explore ParkPay!
+**Access the app:**
+- **Web App**: http://localhost:3000
+- **API Server**: http://localhost:4000
 
-## 🎯 Demo Flow
+## Features
 
-1. **🏠 Home** → See the beautiful landing page with live stats
-2. **🗺️ Map** → View glowing parking spot pins with real-time availability
-3. **🚗 Spot Selection** → Tap a spot → `/spot/[id]` → press "Start Session"
-4. **⏱️ Live Session** → Watch timer circle + RLUSD counter animate in real-time
-5. **🎉 Session End** → Confetti burst + instant RLUSD settlement animation
-6. **💰 Wallet** → View balance with animated inflow/outflow
-7. **📊 Provider Dashboard** → Live earnings, occupancy heatmap, AI insights
-8. **💬 Echo AI Chat** → Ask: "Why was I charged 17 minutes?" → Get intelligent response
+- **Real-time Parking Maps** - TomTom integration for live parking data
+- **Blockchain Payments** - RLUSD tokens on XRP Ledger Testnet
+- **Session Management** - Track parking sessions with live timers
+- **Genesis Bank** - Automated RLUSD issuance system
+- **Modern UI** - Responsive design with real-time updates
 
-## 🎨 Design System
+## Architecture
 
-### Color Palette
-- **Background**: `#0E0E10` (Dark mode first)
-- **Accent Gradients**: `from-cyan-400 via-purple-500 to-fuchsia-600`
-- **Glassmorphism**: `backdrop-blur-lg bg-white/5 border border-white/10`
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Next.js App   │    │  Express API    │    │   XRPL Testnet  │
+│   (Frontend)    │◄──►│   (Backend)     │◄──►│   (Blockchain)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   TomTom Maps   │    │   Prisma DB     │    │   Genesis Bank  │
+│   (Parking Data)│    │  (Session Data) │    │  (RLUSD Issuer) │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-### Typography
-- **Primary**: Inter (clean, modern)
-- **Display**: Space Grotesk (headings, emphasis)
+## Project Structure
 
-### Animations
-- **Page Transitions**: Slide from bottom (Framer Motion)
-- **RLUSD Flow**: Animated dots moving between user & provider
-- **Confetti Burst**: Celebration when sessions end successfully
-- **Neon Glow**: Pulsing effects for active elements
+```
+ParkPay/
+├── api/                 # Express.js backend
+│   ├── src/
+│   │   ├── routes/     # API endpoints
+│   │   └── index.ts    # Main server file
+│   ├── prisma/         # Database schema & migrations
+│   └── .env           # Environment variables (copy from .env.example)
+├── web/                # Next.js frontend
+│   ├── src/
+│   │   ├── app/       # App router pages
+│   │   ├── components/ # React components
+│   │   └── lib/       # Utilities & services
+│   └── package.json
+├── config/             # Configuration files
+│   └── setup.sh       # Automated setup script
+├── docs/              # All documentation
+│   ├── SETUP.md       # Detailed setup guide
+│   ├── SYSTEM_ARCHITECTURE.md
+│   └── ...           # Other documentation
+├── package.json       # Root package.json with workspace config
+├── pnpm-lock.yaml     # Dependency lock file
+└── pnpm-workspace.yaml # Workspace configuration
+```
 
-## 📱 Pages Overview
+## Documentation
 
-### `/` - Landing Page
-- Hero section with animated logo
-- Feature grid with hover effects
-- Live demo stats
-- Call-to-action buttons
+All documentation is organized in the [`docs/`](docs/) folder:
 
-### `/map` - Parking Map
-- Full-screen dark map with custom styling
-- Glowing markers for available spots
-- Top overlay card with lot statistics
-- Floating "Start Session" button
+- **[Setup Guide](docs/SETUP.md)** - Complete installation and configuration
+- **[System Architecture](docs/SYSTEM_ARCHITECTURE.md)** - Technical overview and data flow
+- **[Genesis Bank Info](docs/GENESIS_BANK_INFO.md)** - RLUSD issuance system details
+- **[TomTom Integration](docs/TOMTOM_FINAL_SOLUTION.md)** - Maps and parking data
+- **[Testing Instructions](docs/TESTING_INSTRUCTIONS.md)** - How to test all features
+- **[UI Fixes Summary](docs/UI_FIXES_SUMMARY.md)** - User interface improvements
 
-### `/spot/[id]` - Session Management
-- Large timer circle with progress animation
-- Live RLUSD counter that ticks smoothly
-- Start/End session buttons with state changes
-- Post-settlement confetti animation
-- XRPL transaction details
+## Tech Stack
 
-### `/wallet` - Balance Management
-- Glassmorphism balance card
-- Animated balance bar with RLUSD flow effect
-- Recent transactions list
-- Add funds modal with quick amounts
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend**: Express.js, Prisma, TypeScript
+- **Database**: SQLite (development)
+- **Blockchain**: XRP Ledger Testnet, RLUSD tokens
+- **Maps**: TomTom Maps API
+- **Real-time**: Socket.io
 
-### `/chat` - Echo AI Assistant
-- ChatGPT-style interface
-- Gradient message bubbles (cyan for AI, white for user)
-- Typing indicator animation
-- Suggestion buttons for quick actions
-- Voice input support (UI ready)
+## Key Components
 
-### `/provider` - Dashboard
-- Tabbed interface (Overview, Heatmap, Anomalies)
-- Revenue metrics with animated charts
-- Occupancy heatmap grid
-- AI insights panel with recommendations
-- Anomaly detection with severity indicators
+- **Session Timer** - Real-time parking session tracking
+- **Wallet System** - RLUSD balance management with XRPL sync
+- **Payment Processing** - Automated parking fee collection
+- **Map Integration** - Live parking spot availability
+- **Genesis Bank** - Centralized RLUSD issuance
 
-## 🔧 API Endpoints
+## Important Notes
 
-### Sessions
-- `POST /api/session/start` - Start parking session
-- `POST /api/session/end` - End parking session
-- `GET /api/session/:id` - Get session details
-- `POST /api/session/heartbeat` - Update active session
+- **Security**: Never commit `.env` files - they contain sensitive credentials
+- **Testnet Only**: This uses XRPL Testnet - no real money involved
+- **Auto-sync**: Wallet balance automatically syncs with XRPL ledger
+- **Trustlines**: Automatically established for RLUSD transactions
 
-### Wallet
-- `GET /api/wallet/:address` - Get wallet info
-- `POST /api/wallet/add-funds` - Add RLUSD funds
-- `GET /api/wallet/:address/transactions` - Transaction history
+## Contributing
 
-### AI
-- `POST /api/ai/chat` - Chat with Echo AI
-- `POST /api/ai/analyze` - Analyze anomalies
-- `GET /api/ai/insights/:lotId` - Get AI insights
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-### Provider
-- `GET /api/provider/dashboard/:lotId` - Dashboard data
-- `GET /api/provider/occupancy/:lotId` - Occupancy heatmap
-- `PUT /api/provider/settings/:lotId` - Update settings
+## License
 
-## 🎭 Animation Details
-
-### RLUSD Flow Visualization
-- Animated dots moving between user and provider icons
-- Gradient trails with particle effects
-- Smooth transitions between states
-
-### Timer Circle
-- SVG-based circular progress indicator
-- Smooth stroke-dashoffset animations
-- Gradient stroke colors (cyan → purple → pink)
-
-### Confetti Effects
-- Canvas-based particle system
-- Custom colors matching brand palette
-- Triggered on successful session completion
-
-### Glassmorphism Cards
-- Backdrop blur effects
-- Subtle borders with transparency
-- Hover states with depth and glow
-
-## 🔮 Future Enhancements
-
-- **Real XRPL Integration**: Connect to actual XRPL testnet
-- **Echo AI API**: Integrate with real Echo AI service
-- **Mobile App**: React Native version
-- **Push Notifications**: Session reminders and alerts
-- **Analytics Dashboard**: Advanced reporting and insights
-- **Multi-location Support**: Multiple parking lots
-- **Dynamic Pricing**: AI-driven rate optimization
-
-## 📄 License
-
-MIT License - feel free to use this as a starting point for your own projects!
+This project is for educational and demonstration purposes.
 
 ---
 
-**Built with ❤️ using modern web technologies and beautiful design principles.**
+**Happy Parking!**
+
+*Built with using XRPL, TomTom, and modern web technologies*

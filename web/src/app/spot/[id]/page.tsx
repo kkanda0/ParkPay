@@ -224,70 +224,17 @@ export default function SpotPage() {
         </Link>
         
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">Spot #{spotId.split('-')[1]}</h1>
-          <p className="text-gray-400">Main Street Parking</p>
+          <h1 className="text-2xl font-bold text-white">
+            {session?.parkingGarage?.name || `Spot #${spotId.split('-')[1]}`}
+          </h1>
+          <p className="text-gray-400">
+            {session?.parkingGarage?.address || 'Main Street Parking'}
+          </p>
         </div>
         
         <div className="w-12" /> {/* Spacer */}
       </motion.div>
 
-      {/* Start/End Session Button - Top Middle */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="flex justify-center mb-8"
-      >
-        {session?.status === 'ACTIVE' ? (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleEndSession}
-            disabled={isEnding}
-            className="btn-primary px-8 py-4 rounded-2xl text-lg font-semibold flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {isEnding ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                />
-                Ending...
-              </>
-            ) : (
-              <>
-                <Square className="w-5 h-5" />
-                End Session
-              </>
-            )}
-          </motion.button>
-        ) : (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleStartSession}
-            disabled={isLoading}
-            className="btn-primary px-8 py-4 rounded-2xl text-lg font-semibold flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {isLoading ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                />
-                Starting...
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5" />
-                Start Session
-              </>
-            )}
-          </motion.button>
-        )}
-      </motion.div>
 
       {/* Main timer card */}
       <motion.div
