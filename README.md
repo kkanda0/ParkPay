@@ -127,6 +127,6 @@ This project is for educational and demonstration purposes.
 
 ---
 
-**Happy Parking! **
+**Happy Parking!**
 
 *Built with using XRPL, TomTom, and modern web technologies*
