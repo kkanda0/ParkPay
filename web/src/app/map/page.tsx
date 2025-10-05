@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Car, Clock, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { apiService, ParkingLot, Spot } from '@/lib/api'
+import { apiService, ParkingLot, Spot, Session } from '@/lib/api'
 import { socketService } from '@/lib/socket'
 import { useApp } from '@/app/providers'
-import { cn, formatRLUSD } from '@/lib/utils'
+import { cn, formatRLUSD, formatDuration } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
 
 // Dynamically import the TomTom Map Final component
@@ -22,16 +22,39 @@ const TomTomMapFinal = dynamic(() => import('@/components/TomTomMapFinal'), {
 })
 
 export default function MapPage() {
-  const { walletAddress } = useApp()
+  const { walletAddress, currentSession } = useApp()
   const [parkingLot, setParkingLot] = useState<ParkingLot | null>(null)
   const [spots, setSpots] = useState<Spot[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null)
+  const [sessionDuration, setSessionDuration] = useState(0)
+  const [sessionAmount, setSessionAmount] = useState(0)
 
   useEffect(() => {
     loadParkingData()
     setupSocketListeners()
   }, [])
+
+  // Update session timer when there's an active session
+  useEffect(() => {
+    if (!currentSession || currentSession.status !== 'ACTIVE') {
+      setSessionDuration(0)
+      setSessionAmount(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      const startTime = new Date(currentSession.startTime)
+      const now = new Date()
+      const diffMs = now.getTime() - startTime.getTime()
+      const diffSeconds = Math.floor(diffMs / 1000)
+      
+      setSessionDuration(diffSeconds)
+      setSessionAmount((diffSeconds / 60) * 0.12) // Demo rate: 0.12 RLUSD per minute
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [currentSession])
 
   const loadParkingData = async () => {
     try {

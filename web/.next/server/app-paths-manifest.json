@@ -1,7 +1,0 @@
-{
-  "/not-found": "app/not-found.js",
-  "/map/page": "app/map/page.js",
-  "/wallet/page": "app/wallet/page.js",
-  "/chat/page": "app/chat/page.js",
-  "/page": "app/page.js"
-}

@@ -39,9 +39,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     })
 
     // Load wallet address from localStorage
-    const savedAddress = localStorage.getItem('walletAddress')
-    if (savedAddress) {
-      setWalletAddress(savedAddress)
+    if (typeof window !== 'undefined') {
+      const savedAddress = localStorage.getItem('walletAddress')
+      if (savedAddress) {
+        setWalletAddress(savedAddress)
+      }
+    }
+
+    // Load current session from localStorage if it exists
+    if (typeof window !== 'undefined') {
+      const savedSession = localStorage.getItem('currentSession')
+      if (savedSession) {
+        setCurrentSession(JSON.parse(savedSession))
+      }
     }
 
     return () => {
@@ -51,8 +61,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Save wallet address to localStorage
-    localStorage.setItem('walletAddress', walletAddress)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('walletAddress', walletAddress)
+    }
   }, [walletAddress])
+
+  useEffect(() => {
+    // Save current session to localStorage
+    if (typeof window !== 'undefined') {
+      if (currentSession) {
+        localStorage.setItem('currentSession', JSON.stringify(currentSession))
+      } else {
+        localStorage.removeItem('currentSession')
+      }
+    }
+  }, [currentSession])
 
   const value = {
     walletAddress,
