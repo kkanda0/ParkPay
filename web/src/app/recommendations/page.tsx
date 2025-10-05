@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, X, MapPin, Wallet, Clock, TrendingUp, DollarSign, ChevronRight, ExternalLink } from 'lucide-react'
+import { Sparkles, X, MapPin, Wallet, Clock, TrendingUp, DollarSign, ChevronRight, ExternalLink, Home, Car, CreditCard, Settings, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { 
   getParkingCostOptimization, 
@@ -46,18 +46,25 @@ export default function RecommendationsPage() {
     setIsLoading(true)
     
     try {
-      // Fetch all recommendations in parallel
-      const [
-        costResult,
-        demandResult,
-        efficiencyResult,
-        walletResult
-      ] = await Promise.all([
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 5000) // 5 second timeout
+      })
+      
+      // Fetch all recommendations in parallel with timeout
+      const recommendationsPromise = Promise.all([
         getParkingCostOptimization(),
         getDynamicDemandForecast(),
         getSessionEfficiencyInsight(),
         getWalletHealthInsight()
       ])
+      
+      const [
+        costResult,
+        demandResult,
+        efficiencyResult,
+        walletResult
+      ] = await Promise.race([recommendationsPromise, timeoutPromise]) as any[]
 
       setRecommendations({
         costOptimization: {
@@ -83,6 +90,18 @@ export default function RecommendationsPage() {
       })
     } catch (error) {
       console.error('Error loading recommendations:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error
+      })
+      // Set error state for all recommendations
+      setRecommendations({
+        costOptimization: { data: null, loading: false, error: `Failed to load recommendations: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        demandForecast: { data: null, loading: false, error: `Failed to load recommendations: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        efficiencyInsight: { data: null, loading: false, error: `Failed to load recommendations: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        walletHealth: { data: null, loading: false, error: `Failed to load recommendations: ${error instanceof Error ? error.message : 'Unknown error'}` }
+      })
     } finally {
       setIsLoading(false)
     }
@@ -203,19 +222,6 @@ export default function RecommendationsPage() {
     }
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-400'
-    if (score >= 60) return 'text-yellow-400'
-    if (score >= 40) return 'text-orange-400'
-    return 'text-gray-400'
-  }
-
-  const getScoreBackground = (score: number) => {
-    if (score >= 80) return 'bg-green-500/20 border-green-500/30'
-    if (score >= 60) return 'bg-yellow-500/20 border-yellow-500/30'
-    if (score >= 40) return 'bg-orange-500/20 border-orange-500/30'
-    return 'bg-gray-500/20 border-gray-500/30'
-  }
 
   const renderRecommendationCard = (
     type: string,
@@ -234,8 +240,8 @@ export default function RecommendationsPage() {
           className="glass-card rounded-2xl p-8 mb-6 min-h-[400px]"
         >
           <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg p-2 mr-3">
-              <Icon className="text-white" size={20} />
+            <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg p-3 mr-4">
+              <Icon className="text-white" size={24} />
             </div>
             <div className="flex-1">
               <div className="h-4 bg-gray-700 rounded w-32 mb-2 animate-pulse"></div>
@@ -267,18 +273,13 @@ export default function RecommendationsPage() {
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
-            <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg p-2 mr-3">
-              <Icon className="text-white" size={20} />
+            <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg p-3 mr-4">
+              <Icon className="text-white" size={24} />
             </div>
             <div>
-              <h3 className="text-white font-semibold text-lg mb-1">
+              <h3 className="text-white font-semibold text-xl mb-1">
                 {recommendation.title}
               </h3>
-              <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreBackground(recommendation.score)}`}>
-                <span className={`${getScoreColor(recommendation.score)}`}>
-                  Score: {recommendation.score}/100
-                </span>
-              </div>
             </div>
           </div>
           <motion.button
@@ -291,40 +292,42 @@ export default function RecommendationsPage() {
           </motion.button>
         </div>
         
-        <p className="text-gray-300 text-sm mb-3">
+        <p className="text-gray-300 text-lg mb-4">
           {recommendation.summary}
         </p>
         
-        <p className="text-gray-400 text-xs mb-4">
+        <p className="text-gray-400 text-base mb-6 whitespace-pre-line leading-relaxed">
           {recommendation.reason}
         </p>
         
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => handleRecommendationClick(recommendation)}
-          className="w-full bg-gradient-to-r from-cyan-400/20 to-purple-500/20 border border-cyan-400/30 rounded-xl p-3 flex items-center justify-between text-white hover:from-cyan-400/30 hover:to-purple-500/30 transition-all"
-        >
-          <span className="text-sm font-medium">
-            {recommendation.cta}
-          </span>
-          {recommendation.ctaType === 'navigate' ? (
-            <ChevronRight size={16} />
-          ) : recommendation.ctaType === 'payment' ? (
-            <Wallet size={16} />
-          ) : recommendation.ctaType === 'toggle' ? (
-            <div className="w-4 h-4 rounded-full bg-green-400"></div>
-          ) : (
-            <ExternalLink size={16} />
-          )}
-        </motion.button>
+        {recommendation.cta && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleRecommendationClick(recommendation)}
+            className="w-full bg-gradient-to-r from-cyan-400/20 to-purple-500/20 border border-cyan-400/30 rounded-xl p-3 flex items-center justify-between text-white hover:from-cyan-400/30 hover:to-purple-500/30 transition-all"
+          >
+            <span className="text-sm font-medium">
+              {recommendation.cta}
+            </span>
+            {recommendation.ctaType === 'navigate' ? (
+              <ChevronRight size={16} />
+            ) : recommendation.ctaType === 'payment' ? (
+              <Wallet size={16} />
+            ) : recommendation.ctaType === 'toggle' ? (
+              <div className="w-4 h-4 rounded-full bg-green-400"></div>
+            ) : (
+              <ExternalLink size={16} />
+            )}
+          </motion.button>
+        )}
       </motion.div>
     )
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4 pb-20">
         <div className="max-w-md mx-auto pt-20">
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-center mb-6">
@@ -338,6 +341,70 @@ export default function RecommendationsPage() {
             </p>
           </div>
         </div>
+        
+        {/* Bottom Navigation Bar */}
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-gray-800/90 backdrop-blur-lg rounded-2xl px-6 py-3 border border-gray-700/50">
+            <div className="flex items-center justify-center gap-8">
+              {/* Sessions */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/sessions')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <Clock size={20} />
+                <span className="text-xs font-medium">Sessions</span>
+              </motion.button>
+
+              {/* Map */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/map')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <MapPin size={20} />
+                <span className="text-xs font-medium">Map</span>
+              </motion.button>
+
+              {/* Wallet */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/wallet')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <Wallet size={20} />
+                <span className="text-xs font-medium">Wallet</span>
+              </motion.button>
+
+              {/* Recommendations - Active */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative flex flex-col items-center gap-1"
+              >
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full"></div>
+                <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-xl p-2">
+                  <Sparkles size={20} className="text-white" />
+                </div>
+                <span className="text-xs font-medium text-white">Recommendations</span>
+              </motion.button>
+
+              {/* Logout */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <LogOut size={20} />
+                <span className="text-xs font-medium">Logout</span>
+              </motion.button>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -347,7 +414,7 @@ export default function RecommendationsPage() {
   
   if (hasAuthError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-4 pb-20">
         <div className="max-w-md mx-auto pt-20">
           <div className="glass-card rounded-2xl p-6">
             <div className="text-center">
@@ -369,12 +436,76 @@ export default function RecommendationsPage() {
             </div>
           </div>
         </div>
+        
+        {/* Bottom Navigation Bar */}
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-gray-800/90 backdrop-blur-lg rounded-2xl px-6 py-3 border border-gray-700/50">
+            <div className="flex items-center justify-center gap-8">
+              {/* Sessions */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/sessions')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <Clock size={20} />
+                <span className="text-xs font-medium">Sessions</span>
+              </motion.button>
+
+              {/* Map */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/map')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <MapPin size={20} />
+                <span className="text-xs font-medium">Map</span>
+              </motion.button>
+
+              {/* Wallet */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/wallet')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <Wallet size={20} />
+                <span className="text-xs font-medium">Wallet</span>
+              </motion.button>
+
+              {/* Recommendations - Active */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative flex flex-col items-center gap-1"
+              >
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full"></div>
+                <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-xl p-2">
+                  <Sparkles size={20} className="text-white" />
+                </div>
+                <span className="text-xs font-medium text-white">Recommendations</span>
+              </motion.button>
+
+              {/* Logout */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/')}
+                className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+              >
+                <LogOut size={20} />
+                <span className="text-xs font-medium">Logout</span>
+              </motion.button>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 p-6 pb-20">
       <div className="max-w-7xl mx-auto pt-20">
         {/* Header */}
         <div className="glass-card rounded-2xl p-8 mb-8">
@@ -422,11 +553,69 @@ export default function RecommendationsPage() {
           </AnimatePresence>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-12">
-          <p className="text-gray-400 text-sm">
-            Recommendations powered by Echo AI • Real-time analysis of your parking data
-          </p>
+      </div>
+
+      {/* Bottom Navigation Bar */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-gray-800/90 backdrop-blur-lg rounded-2xl px-6 py-3 border border-gray-700/50">
+          <div className="flex items-center justify-center gap-8">
+            {/* Sessions */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/sessions')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <Clock size={20} />
+              <span className="text-xs font-medium">Sessions</span>
+            </motion.button>
+
+            {/* Map */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/map')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <MapPin size={20} />
+              <span className="text-xs font-medium">Map</span>
+            </motion.button>
+
+            {/* Wallet */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/wallet')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <Wallet size={20} />
+              <span className="text-xs font-medium">Wallet</span>
+            </motion.button>
+
+            {/* Recommendations - Active */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative flex flex-col items-center gap-1"
+            >
+              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full"></div>
+              <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-xl p-2">
+                <Sparkles size={20} className="text-white" />
+              </div>
+              <span className="text-xs font-medium text-white">Recommendations</span>
+            </motion.button>
+
+            {/* Logout */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="text-xs font-medium">Logout</span>
+            </motion.button>
+          </div>
         </div>
       </div>
     </div>

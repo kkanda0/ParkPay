@@ -2,8 +2,6 @@ import type { Metadata } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import '../styles/globals.css'
 import { Providers } from './providers'
-import Navigation from '@/components/Navigation'
-import SessionTimer from '@/components/SessionTimer'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -22,6 +20,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'ParkPay Team' }],
   viewport: 'width=device-width, initial-scale=1',
   themeColor: '#0E0E10',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -34,8 +37,6 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <Providers>
           {children}
-          <Navigation />
-          <SessionTimer />
         </Providers>
       </body>
     </html>

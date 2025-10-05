@@ -195,7 +195,7 @@ export async function exchangeCodeForToken(code: string, code_verifier: string):
   }
 
   try {
-        const redirectUri = `${process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000'}/auth/callback`;
+        const redirectUri = `${process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3002'}/auth/callback`;
 
     console.log('🔄 Exchanging authorization code for access token...');
     console.log('📋 App ID:', echoAppId);
@@ -251,7 +251,9 @@ export async function exchangeCodeForToken(code: string, code_verifier: string):
               console.log('✅ Token endpoint working:', endpoint);
               break; // Success, exit the loop
             } else {
-              const errorText = await response.text();
+              // Clone the response before consuming the body
+              const responseClone = response.clone();
+              const errorText = await responseClone.text();
               console.log('❌ Token endpoint failed:', endpoint, response.status);
               console.log('📄 Error response:', errorText);
             }
@@ -272,7 +274,9 @@ export async function exchangeCodeForToken(code: string, code_verifier: string):
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
+      // Clone the response before consuming the body
+      const responseClone = response.clone();
+      const errorText = await responseClone.text();
       console.error('❌ Token exchange failed:', response.status, response.statusText);
       console.error('📄 Error response:', errorText);
       

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Car, Zap, Brain, Shield, LogIn, User } from 'lucide-react'
+import { Car, Zap, Brain, Shield, LogIn, User, Gauge } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -213,7 +213,7 @@ function HomePageContent() {
         </h1>
         
         <p className="text-2xl text-gray-300 mb-12 max-w-3xl">
-          Pay Smarter Park Faster
+          Pay Smarter, Park Faster
         </p>
         
         {/* Authentication Status */}
@@ -234,7 +234,8 @@ function HomePageContent() {
           transition={{ delay: 0.6 }}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          <Link href="/map">
+          {/* Find Parking button hidden as requested */}
+          {/* <Link href="/map">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -242,7 +243,7 @@ function HomePageContent() {
             >
               Find Parking
             </motion.button>
-          </Link>
+          </Link> */}
           
       {isCheckingAuth ? (
         <motion.div
@@ -282,7 +283,7 @@ function HomePageContent() {
           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-12 py-6 rounded-2xl text-xl font-semibold flex items-center gap-3"
         >
           <LogIn className="w-6 h-6" />
-          🔐 Login with Real Echo (PKCE Enabled)
+          Login
         </motion.button>
       )}
         </motion.div>
@@ -341,7 +342,7 @@ function HomePageContent() {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl font-semibold mb-3"
               >
-                🔐 Login with Real Echo (PKCE Enabled)
+                Login
               </motion.button>
               
               <motion.button
@@ -442,7 +443,7 @@ function HomePageContent() {
           },
           {
             icon: Brain,
-            title: "Echo AI + Opik by Comet",
+            title: "Echo AI by Merit",
             description: "Smart insights and curated recommendations"
           },
           {
@@ -451,7 +452,7 @@ function HomePageContent() {
             description: "Blockchain-based escrow and settlement"
           },
           {
-            icon: Car,
+            icon: Gauge,
             title: "Real-time",
             description: "Live billing"
           }

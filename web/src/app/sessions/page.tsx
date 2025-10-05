@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Clock, MapPin, DollarSign, ExternalLink, ArrowLeft, Square, CheckCircle } from 'lucide-react'
+import { Clock, MapPin, DollarSign, ExternalLink, ArrowLeft, Square, CheckCircle, Sparkles, Wallet, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import confetti from 'canvas-confetti'
@@ -533,6 +533,70 @@ export default function SessionsPage() {
             ))
         )}
       </motion.div>
+
+      {/* Bottom Navigation Bar */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-gray-800/90 backdrop-blur-lg rounded-2xl px-6 py-3 border border-gray-700/50">
+          <div className="flex items-center justify-center gap-8">
+            {/* Sessions - Active */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative flex flex-col items-center gap-1"
+            >
+              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full"></div>
+              <div className="bg-gradient-to-r from-cyan-400 to-purple-500 rounded-xl p-2">
+                <Clock size={20} className="text-white" />
+              </div>
+              <span className="text-xs font-medium text-white">Sessions</span>
+            </motion.button>
+
+            {/* Map */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/map')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <MapPin size={20} />
+              <span className="text-xs font-medium">Map</span>
+            </motion.button>
+
+            {/* Wallet */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/wallet')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <Wallet size={20} />
+              <span className="text-xs font-medium">Wallet</span>
+            </motion.button>
+
+            {/* Recommendations */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/recommendations')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <Sparkles size={20} />
+              <span className="text-xs font-medium">Recommendations</span>
+            </motion.button>
+
+            {/* Logout */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/')}
+              className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="text-xs font-medium">Logout</span>
+            </motion.button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
