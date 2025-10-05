@@ -81,3 +81,17 @@ model Anomaly {
   
   @@map("anomalies")
 }
+
+model User {
+  id        String @id @default(cuid())
+  auth0Id   String @unique
+  email     String @unique
+  name      String
+  picture   String?
+  preferences String @default("{}") // Store user preferences as JSON string
+  parkingHistory String @default("{}") // Store parking history as JSON string
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("users")
+}
