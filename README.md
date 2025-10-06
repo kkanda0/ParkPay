@@ -1,5 +1,4 @@
 # PayPark
-**note** Main working branch is called "test_recs," and in case the auth api goes down, use "test_recs_no_auth"
 **Smart Parking with XRPL Integration**
 
 ParkPay is a modern parking management system that combines real-time parking data with blockchain payments using the XRP Ledger (XRPL) and RLUSD tokens.
@@ -124,6 +123,9 @@ All documentation is organized in the [`docs/`](docs/) folder:
 ## License
 
 This project is for educational and demonstration purposes.
+
+## Note
+Main working branch is called "test_recs," and in case the auth api goes down, use "test_recs_no_auth"
 
 ---
 
