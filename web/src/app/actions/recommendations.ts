@@ -1,8 +1,5 @@
 'use server'
 
-import { cookies } from 'next/headers'
-import { validateToken, getUserFromToken } from '@/lib/utils/auth'
-
 // Common recommendation schema
 export interface RecommendationCard {
   id: string
@@ -23,14 +20,8 @@ export async function getParkingCostOptimization(): Promise<{
   try {
     console.log('🚀 Starting parking cost optimization recommendation...')
     
-    // Validate authentication
-    const authResult = await validateAuth()
-    if (!authResult.valid) {
-      return { ok: false, error: authResult.error }
-    }
-
     // Gather server-side signals
-    const signals = await gatherSignals(authResult.userId)
+    const signals = await gatherSignals('default-user')
     
     // Call AI through Echo
     const aiResponse = await callEchoAI('parking-cost-optimization', signals)
@@ -55,14 +46,8 @@ export async function getDynamicDemandForecast(): Promise<{
   error?: string
 }> {
   try {
-    // Validate authentication
-    const authResult = await validateAuth()
-    if (!authResult.valid) {
-      return { ok: false, error: authResult.error }
-    }
-
     // Gather server-side signals
-    const signals = await gatherSignals(authResult.userId)
+    const signals = await gatherSignals('default-user')
     
     // Call AI through Echo
     const aiResponse = await callEchoAI('dynamic-demand-forecast', signals)
@@ -87,14 +72,8 @@ export async function getSessionEfficiencyInsight(): Promise<{
   error?: string
 }> {
   try {
-    // Validate authentication
-    const authResult = await validateAuth()
-    if (!authResult.valid) {
-      return { ok: false, error: authResult.error }
-    }
-
     // Gather server-side signals
-    const signals = await gatherSignals(authResult.userId)
+    const signals = await gatherSignals('default-user')
     
     // Call AI through Echo
     const aiResponse = await callEchoAI('session-efficiency-insight', signals)
@@ -119,14 +98,8 @@ export async function getWalletHealthInsight(): Promise<{
   error?: string
 }> {
   try {
-    // Validate authentication
-    const authResult = await validateAuth()
-    if (!authResult.valid) {
-      return { ok: false, error: authResult.error }
-    }
-
     // Gather server-side signals
-    const signals = await gatherSignals(authResult.userId)
+    const signals = await gatherSignals('default-user')
     
     // Call AI through Echo
     const aiResponse = await callEchoAI('wallet-health-insight', signals)
@@ -145,34 +118,6 @@ export async function getWalletHealthInsight(): Promise<{
 }
 
 // Common authentication validation - FIXED LOGIC ERROR
-async function validateAuth(): Promise<{ valid: boolean; userId?: string; error?: string }> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('token')?.value
-  
-  // For testing purposes, allow bypassing auth if no token is present
-  if (!token) {
-    // Check if we're in test mode (no token but should still work)
-    const isTestMode = process.env.NODE_ENV === 'development'
-    if (isTestMode) {
-      console.log('🧪 Test mode: Bypassing authentication for recommendations')
-      return { valid: true, userId: 'test-user-123' }
-    }
-    return { valid: false, error: 'Authentication required' }
-  }
-
-  const isValid = await validateToken(token)
-  if (!isValid) {
-    return { valid: false, error: 'Authentication required' }
-  }
-
-  const user = await getUserFromToken()
-  if (!user) {
-    return { valid: false, error: 'User not found' }
-  }
-
-  return { valid: true, userId: user.id }
-}
-
 // Gather server-side signals from internal services
 async function gatherSignals(userId: string) {
   // Remove /api suffix if present to avoid double /api/api/ paths
@@ -222,26 +167,28 @@ async function gatherSignals(userId: string) {
       wallet = { balance: 100, recentTransactions: [] }
       sessions = [
         {
-          id: 'mock-session-1',
-          zone: 'Main Street Parking',
-          start: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          end: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          duration: 60,
-          cost: 6.0,
-          spotId: '15',
-          parkingLotName: 'Main Street Parking',
-          ratePerMin: 0.1
+          id: 'session-1',
+          zone: 'iPark-44 Elizabeth Street Parking Garage',
+          start: new Date('2025-10-05T09:42:00').toISOString(),
+          end: new Date('2025-10-05T10:02:00').toISOString(),
+          duration: 20,
+          cost: 2.40,
+          spotId: '44',
+          parkingLotName: 'iPark-44 Elizabeth Street Parking Garage',
+          address: '44 Elizabeth Street, New York, NY 10013',
+          ratePerMin: 0.12
         },
         {
-          id: 'mock-session-2',
-          zone: 'Main Street Parking',
-          start: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          end: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+          id: 'session-2',
+          zone: 'iPark-44 Elizabeth Street Parking Garage',
+          start: new Date('2025-10-05T08:12:00').toISOString(),
+          end: new Date('2025-10-05T09:12:00').toISOString(),
           duration: 60,
-          cost: 6.0,
-          spotId: '8',
-          parkingLotName: 'Main Street Parking',
-          ratePerMin: 0.1
+          cost: 7.20,
+          spotId: '44',
+          parkingLotName: 'iPark-44 Elizabeth Street Parking Garage',
+          address: '44 Elizabeth Street, New York, NY 10013',
+          ratePerMin: 0.12
         }
       ]
     }
@@ -275,12 +222,12 @@ async function gatherSignals(userId: string) {
       // Use mock parking lots data when API is not available
       parkingLots = [
         {
-          id: 'demo-lot-1',
-          name: 'Main Street Parking',
+          id: 'ipark-44',
+          name: 'iPark-44 Elizabeth Street Parking Garage',
           ratePerMin: 0.12,
-          location: '123 Main Street, Downtown',
-          totalSpots: 20,
-          availableSpots: 5
+          location: '44 Elizabeth Street, New York, NY 10013',
+          totalSpots: 50,
+          availableSpots: 12
         },
         {
           id: 'demo-lot-2',
@@ -288,7 +235,7 @@ async function gatherSignals(userId: string) {
           ratePerMin: 0.15,
           location: '456 Central Plaza, Midtown',
           totalSpots: 35,
-          availableSpots: 12
+          availableSpots: 8
         },
         {
           id: 'demo-lot-3',

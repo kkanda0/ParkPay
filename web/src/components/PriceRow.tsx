@@ -86,7 +86,7 @@ export default function PriceRow({ lat, lon }: PriceRowProps) {
       // Base price in USD (this is what we charge per hour)
       const baseUSDPrice = 5.0; // $5/hour base rate
       
-      const apiUrl = "http://localhost:3001"; // Hardcoded for debugging
+      const apiUrl = "http://localhost:4000"; // API server port
       const fullUrl = `${apiUrl}/api/pricing/calculate`;
       
       console.log('📡 PriceRow: Calling API:', fullUrl);
@@ -142,7 +142,7 @@ export default function PriceRow({ lat, lon }: PriceRowProps) {
     
     try {
       const baseUSDPrice = 5.0;
-      const apiUrl = "http://localhost:3001";
+      const apiUrl = "http://localhost:4000";
       const fullUrl = `${apiUrl}/api/pricing/explain`;
       
       console.log('📡 Calling AI explanation API:', fullUrl);

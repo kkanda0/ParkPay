@@ -1,9 +1,9 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MapPin, Wallet, MessageCircle, LogOut, Clock, Sparkles } from 'lucide-react'
+import { MapPin, Wallet, Clock, Sparkles } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const navigation = [
@@ -15,21 +15,10 @@ const navigation = [
 
 export default function Navigation() {
   const pathname = usePathname()
-  const router = useRouter()
 
   // Don't show navigation on home page
   if (pathname === '/') {
     return null
-  }
-
-  const handleLogout = () => {
-    // Clear any stored authentication data
-    if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
-    }
-    // Redirect to homepage
-    router.push('/')
   }
 
   return (
@@ -86,22 +75,6 @@ export default function Navigation() {
                 </Link>
               )
             })}
-            
-            {/* Logout Button */}
-            <motion.button
-              onClick={handleLogout}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative flex flex-col items-center p-3 rounded-xl transition-all duration-300 text-gray-400 hover:text-red-400"
-            >
-              <LogOut 
-                size={24} 
-                className="relative z-10 transition-all duration-300"
-              />
-              <span className="text-xs font-medium mt-1 relative z-10 transition-all duration-300">
-                Logout
-              </span>
-            </motion.button>
           </div>
         </div>
       </div>
